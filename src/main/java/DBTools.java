@@ -109,7 +109,24 @@ public class DBTools {
         }
     }
 
-    protected static ResultSet getCOMMAND_KEYWORD(String CONDITION) throws SQLException{
+    protected static int selectJACKPOT() {
+        try {
+            PreparedStatement statement = connection.prepareStatement("SELECT BANANA_JACKPOT FROM GAMBLE");
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                return resultSet.getInt("BANANA_JACKPOT");
+            } else {
+                // Handle the case where no result is found (return a default value or throw an exception)
+                return 0; // Replace with appropriate handling
+            }
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            return 0; // Replace with appropriate handling
+        }
+    }
+    
+
+    protected static ResultSet  getCOMMAND_KEYWORD(String CONDITION) throws SQLException{
         try (PreparedStatement statement = connection.prepareStatement(
                 "select KEYWORD as KEYWORD from COMMAND_KEYWORD where COMMAND=?")) {
             statement.setString(1, CONDITION);
@@ -133,4 +150,36 @@ public class DBTools {
         }
     }
 
+    protected static void updateJACKPOT(int bananaJackpot) {
+        try {
+            PreparedStatement statement = connection.prepareStatement(buildUpdateBananaJackpotQuery());
+            statement.setInt(1, bananaJackpot);
+            System.out.println("Executing SQL: " + statement.toString());
+            statement.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    protected static void resetJACKPOT(int baseBananaJackpot) {
+        try {
+            // Update the jackpot value to the base value
+            PreparedStatement statement = connection.prepareStatement(buildUpdateBananaJackpotQuery());
+            statement.setInt(1, baseBananaJackpot);
+        
+            System.out.println("Executing SQL: " + statement.toString());
+            statement.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+    
+    
+    
+    private static String buildUpdateBananaJackpotQuery() {
+        return "UPDATE GAMBLE SET BANANA_JACKPOT = ?";
+    }
+    
 }
+
+

@@ -26,8 +26,8 @@ public class BananaScore {
             AngryBot.eb.setAuthor(nickname, null, author.getEffectiveAvatarUrl());
             AngryBot.eb.setTitle("Your Score", null);
             AngryBot. eb.setColor(new Color(0xF7FF00));
-            AngryBot.eb.addField("Total Banana's", Integer.toString(total), false);
-            AngryBot.eb.addField("Current Banana's", Integer.toString(count), false);
+            AngryBot.eb.addField("Total Bananas", Integer.toString(total), false);
+            AngryBot.eb.addField("Current Bananas", Integer.toString(count), false);
             AngryBot.eb.addField("Gunked", Integer.toString(gunked), false);
             AngryBot.eb.addField("Gunks", Integer.toString(gunks), false);
 

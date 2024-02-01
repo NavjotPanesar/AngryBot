@@ -17,10 +17,34 @@ public class Tools {
     private static final String[] VOWEL = {"i", "o", "u"};
     private static final String[] CONSONANT1 = {"n", "m"};
     private static final String[] CONSONANT2 = {"g", "k", "p", "b"};
-    private static final String[] END = {"us", "er", "oid", "aloid", "is","ite"};
+    private static final String[] END = {"us", "er", "oid", "aloid", "is","ite","oodle","oodle-doodle","aroo","icious","tastic","aloo","amoo","aroni"};
 
     private static final List<String> SIZE_ADJECTIVES = Arrays.asList("big", "huge", "giant", "small", "tiny", "puny", "milky");
-    private static final List<String> ADJECTIVES = Arrays.asList("ugly", "stinking", "funky", "grimy", "slimy", "gunky", "disgusting", "revolting", "horrible", "horrid", "putrid", "pungent", "crispy", "crusty", "busted", "encrusted", "foul", "rotten", "slippery", "wet", "moist", "diseased", "fruity", "dumb", "stupid", "retarded", "melted", "melty", "dirty", "filthy", "nasty", "fat", "plump", "husky", "pudgy", "heavy", "fleshy", "obese", "tubby", "ripe", "rotund", "round", "blubbery");
+    //private static final List<String> ADJECTIVES = Arrays.asList("ugly", "stinking", "funky", "grimy", "slimy", "gunky", "disgusting", "revolting", "horrible", "horrid", "putrid", "pungent", "crispy", "crusty", "busted", "encrusted", "foul", "rotten", "slippery", "wet", "moist", "diseased", "fruity", "dumb", "stupid", "retarded", "melted", "melty", "dirty", "filthy", "nasty", "fat", "plump", "husky", "pudgy", "heavy", "fleshy", "obese", "tubby", "ripe", "rotund", "round", "blubbery");
+    private static final List<String> ADJECTIVES = Arrays.asList(
+    "hideous", "rank", "funky", "gritty", "slimy", "gunky", "gross", 
+    "vile", "horrid", "putrid", "pungent", "crispy", "crusty", "busted", 
+    "sour", "rotten", "slick", "wet", "moist", "icky", "fruity", "dumb", 
+    "stupid", "melted", "melty", "dirty", "filthy", "nasty", "lumpy", 
+    "plump", "husky", "pudgy", "heavy", "fleshy", "obese", "tubby", 
+    "ripe", "rotund", "round", "blubbery", "muddy", "smelly", "soggy",
+    "shabby", "repellent", "dreadful", 
+    "gruesome", "unpleasant", "unsightly", "repugnant", "obnoxious", 
+    "disgusting", "horrifying", 
+    "execrable", "loathsome", "repulsive", 
+    "detestable", "unattractive", 
+    "dreadful", "grisly", "odious",
+    "morbid", "grotesque", "creepy", 
+    "gory",  
+    "menacing", "spooky", "haunting", 
+    "ghastly", "ghostly", 
+    "fearful", "shadowy", "spectral", 
+    "otherworldly", "supernatural", "unnatural", "unearthly", 
+    "mysterious", "enigmatic", "cryptic", "bewildering", "puzzling", 
+    "uncanny", "curious", "bizarre", "weird", "odd", 
+    "strange", "peculiar", "unusual", "aberrant", "anomalous", "extraordinary",
+    "retarded","stupid","dense","pungent","gloopy","swampy","rancid","poopy","slow"
+);
 
     static void initializeParser() {
         try {
@@ -144,60 +168,59 @@ public class Tools {
 
     public static String generateSillyWord() {
         Random random = new Random();
-
-        // Generate a random number of adjectives (0 to 5) with adjusted probabilities
-        int numAdjectives = 0;
-        double probability = random.nextDouble();
-        if (probability < 0.4) {
-            numAdjectives = 0;
-        } else if (probability < 0.7) {
-            numAdjectives = 1;
-        } else if (probability < 0.85) {
-            numAdjectives = 2;
-        } else if (probability < 0.95) {
-            numAdjectives = 3;
-        } else if (probability < 0.99) {
-            numAdjectives = 4;
-        } else {
-            numAdjectives = 5;
-        }
-
+    
+        // Define the maximum length for the silly word
+        int maxLength = 32;
+    
+        // Initialize the remaining length considering the start and ending
+        int remainingLength = maxLength - 5; // 5 for start + vowel + consonant1 + consonant2 + ending
+    
+        // Generate a random number of adjectives (0 to 4) with adjusted probabilities
+        int numAdjectives = Math.min(4, random.nextInt(5));
+    
         // Shuffle the list of adjectives to ensure randomness
         List<String> shuffledAdjectives = new ArrayList<>(ADJECTIVES);
         Collections.shuffle(shuffledAdjectives);
-
-        // Add size-related adjective as the first word
+    
+        // Add size-related adjective as the first word if it fits within the remaining length
         List<String> adjectiveList = new ArrayList<>();
-        if (numAdjectives > 0 && !SIZE_ADJECTIVES.isEmpty()) {
+        if (numAdjectives > 0 && !SIZE_ADJECTIVES.isEmpty() && SIZE_ADJECTIVES.get(0).length() <= remainingLength) {
             adjectiveList.add(SIZE_ADJECTIVES.get(random.nextInt(SIZE_ADJECTIVES.size())));
+            remainingLength -= SIZE_ADJECTIVES.get(0).length() + 1; // 1 for the space
         }
-
-        // Add additional adjectives based on the generated number
+    
+        // Add additional adjectives based on the generated number if they fit within the remaining length
         for (int i = 0; i < numAdjectives && i < shuffledAdjectives.size(); i++) {
-            adjectiveList.add(shuffledAdjectives.get(i));
+            String adjective = shuffledAdjectives.get(i);
+            if (adjective.length() <= remainingLength) {
+                adjectiveList.add(adjective);
+                remainingLength -= adjective.length() + 1; // 1 for the space
+            } else {
+                break; // Stop adding adjectives if they don't fit within the remaining length
+            }
         }
-
+    
         // Start with any of START1
         String start = START1[random.nextInt(START1.length)];
-
+    
         // Random chance of adding in START2, but not if START1 is "d"
         if (!start.equals("d") && random.nextBoolean()) {
             start += START2[random.nextInt(START2.length)];
         }
-
+    
         // Pick a random vowel
         String vowel = VOWEL[random.nextInt(VOWEL.length)];
-
+    
         // Pick a random letter from CONSONANT1
         String consonant1 = CONSONANT1[random.nextInt(CONSONANT1.length)];
-
+    
         // If the word starts with "c" and there is no START2, do not allow "i" as the next letter
         if (start.equals("c") && !start.endsWith("r") && !start.endsWith("l")) {
             while (vowel.equals("i")) {
                 vowel = VOWEL[random.nextInt(VOWEL.length)];
             }
         }
-
+    
         // Pick a random letter from CONSONANT2, but not "p" if CONSONANT1 is "n" or "k" if CONSONANT1 is "m"
         String consonant2 = CONSONANT2[random.nextInt(CONSONANT2.length)];
         if (consonant1.equals("n") && consonant2.equals("p")) {
@@ -205,18 +228,23 @@ public class Tools {
         } else if (consonant1.equals("m") && consonant2.equals("k")) {
             consonant2 = CONSONANT2[random.nextInt(CONSONANT2.length - 1)]; // Exclude "k"
         }
-
+    
         // Pick a random ending
         String ending = END[random.nextInt(END.length)];
-
+    
         // Combine the parts to get the word
         String word = String.join(" ", adjectiveList) + " " + start + vowel + consonant1 + consonant2 + ending;
-
+    
         // Trim whitespace from the beginning and end, and capitalize the first letter
         word = word.trim();
         word = Character.toUpperCase(word.charAt(0)) + word.substring(1);
-        if (word.length()> 32) return generateSillyWord();
+    
+        // Ensure the word does not exceed the maximum length
+        if (word.length() > maxLength) {
+            word = word.substring(0, maxLength);
+        }
+    
         return word;
     }
-
+    
 }
