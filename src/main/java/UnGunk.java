@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -15,20 +16,19 @@ public class UnGunk {
         User author = msg.getAuthor();              // author object
         String ID = author.getId();                 //unique user ID
         int bananaCost = 0;
-        int gunked = 1;
         List<User> users = msg.getMentions().getUsers();  //list of tagged users
         int userCount = users.toArray().length;
         try {
             DBTools.openConnection();
+            ResultSet authorSet = DBTools.selectGUILD_USER(event.getGuild().getId(), ID);
+
             System.out.println(event.getGuild().getId()+ "  , "+ ID);
-            if (userCount * 5 > DBTools.selectGUILD_USER(event.getGuild().getId(), ID).getInt("BANANA_CURRENT")) {
+            if (userCount * 5 > authorSet.getInt("BANANA_CURRENT")) {
                 return;
             } else for (User u : users) {
 
                 ID = u.getId();
-                String nickname = event.getGuild().getMemberById(ID).getUser().getName();
-                System.out.println(nickname);
-                event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById(ID)), nickname).queue();
+                event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById(ID)), u.getName()).queue();
                 bananaCost += 5;
 
 

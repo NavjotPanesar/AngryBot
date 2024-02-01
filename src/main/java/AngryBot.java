@@ -1,26 +1,25 @@
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
-import net.dv8tion.jda.api.events.guild.GuildTimeoutEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateTimeOutEvent;
-import net.dv8tion.jda.api.events.guild.update.GuildUpdateAfkTimeoutEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
-import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
+import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -33,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.security.auth.login.LoginException;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 
 
@@ -46,6 +44,8 @@ public class AngryBot extends ListenerAdapter {
     private static JDA jda;
     private  User brendan;
     private  PrivateChannel brendansDM ;
+
+    InputStream in;
     public AngryBot() {
         Tools.initializeParser();
     }
@@ -178,11 +178,11 @@ public class AngryBot extends ListenerAdapter {
         int randomNum = ThreadLocalRandom.current().nextInt(0, 100001);
     
         // Customizable drop rates
-        double regularBananaRate = 1.0 / 10;      // 1/20 chance
-        double rareBananaRate = 1.0 / 500;       // 1/1000 chance
-        double epicBananaRate = 1.0 / 2000;       // 1/5000 chance
-        double uniqueBananaRate = 1.0 / 5000;    // 1/10000 chance
-        double legendaryBananaRate = 1.0 / 20000; // 1/50000 chance
+        double regularBananaRate = 1.0 / 20;      // 1/20    chance
+        double rareBananaRate = 1.0 / 500;        // 1/500   chance
+        double epicBananaRate = 1.0 / 2000;       // 1/2000  chance
+        double uniqueBananaRate = 1.0 / 5000;     // 1/5000  chance
+        double legendaryBananaRate = 1.0 / 20000; // 1/20000 chance
         System.out.println("randomNum = " + randomNum);
         if (randomNum < regularBananaRate * 100000) {
             // Regular banana
@@ -190,19 +190,71 @@ public class AngryBot extends ListenerAdapter {
             handleBananaEvent(event, 1);
         } else if (randomNum < (regularBananaRate + rareBananaRate) * 100000) {
             // Rare banana
-            event.getMessage().addReaction(Emoji.fromUnicode("RARE_BANANA_EMOJI")).queue();
+            try {
+                // Get the resource as a stream
+                in = getClass().getClassLoader().getResourceAsStream("bananas/rare_banana.png");
+
+                // Create a temporary file to copy the stream data into
+                File tempFile = File.createTempFile("image", ".png");
+                tempFile.deleteOnExit();
+                Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                // Send the image as a file in a message
+                event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             handleBananaEvent(event, 5);
         } else if (randomNum < (regularBananaRate + rareBananaRate + epicBananaRate) * 100000) {
             // Epic banana
-            event.getMessage().addReaction(Emoji.fromUnicode("EPIC_BANANA_EMOJI")).queue();
+            try {
+                // Get the resource as a stream
+                in = getClass().getClassLoader().getResourceAsStream("bananas/epic_banana.png");
+
+                // Create a temporary file to copy the stream data into
+                File tempFile = File.createTempFile("image", ".png");
+                tempFile.deleteOnExit();
+                Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                // Send the image as a file in a message
+                event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             handleBananaEvent(event, 10);
         } else if (randomNum < (regularBananaRate + rareBananaRate + epicBananaRate + uniqueBananaRate) * 100000) {
             // Unique banana
-            event.getMessage().addReaction(Emoji.fromUnicode("UNIQUE_BANANA_EMOJI")).queue();
+            try {
+                // Get the resource as a stream
+                in = getClass().getClassLoader().getResourceAsStream("bananas/unique_banana.png");
+
+                // Create a temporary file to copy the stream data into
+                File tempFile = File.createTempFile("image", ".png");
+                tempFile.deleteOnExit();
+                Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                // Send the image as a file in a message
+                event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             handleBananaEvent(event, 25);
         } else if (randomNum < (regularBananaRate + rareBananaRate + epicBananaRate + uniqueBananaRate + legendaryBananaRate) * 100000) {
             // Legendary banana
-            event.getMessage().addReaction(Emoji.fromUnicode("LEGENDARY_BANANA_EMOJI")).queue();
+            try {
+                // Get the resource as a stream
+                in = getClass().getClassLoader().getResourceAsStream("bananas/legendary_banana.png");
+
+                // Create a temporary file to copy the stream data into
+                File tempFile = File.createTempFile("image", ".png");
+                tempFile.deleteOnExit();
+                Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                // Send the image as a file in a message
+                event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             handleBananaEvent(event, 100);
         }
 
@@ -370,7 +422,9 @@ public class AngryBot extends ListenerAdapter {
         try {
             DBTools.openConnection();
             ResultSet set = DBTools.selectGUILD_USER(event.getGuild().getId(), event.getAuthor().getId());
-
+            int total = bananaValue + set.getInt("BANANA_TOTAL");
+            int current = bananaValue + set.getInt("BANANA_CURRENT");
+            DBTools.updateGUILD_USER(event.getGuild().getId(),event.getAuthor().getId(),total,current,null,null);
             DBTools.closeConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);
