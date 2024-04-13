@@ -1,91 +1,112 @@
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
 
-public class Spin extends ListenerAdapter {
-
+public class Spin {
     private static final int BANANA_COST = 5;
     private static final Random random = new Random();
 
-    @Override
-    public void onMessageReceived(MessageReceivedEvent event) {
-        if (event.getAuthor().getId().equals("lleters")) {
-            handleLletersMessage(event);
-        } else {
-            processSpin(event);
-        }
-    }
-
-    private void handleLletersMessage(MessageReceivedEvent event) {
-        try {
-            DBTools.openConnection();
-            int userBalance = DBTools.selectGUILD_USER(event.getGuild().getId(), event.getAuthor().getId()).getInt("BANANA_CURRENT");
-            if (userBalance >= 1) {
-                DBTools.updateGUILD_USER(event.getGuild().getId(), event.getAuthor().getId(), null, userBalance - 1, null, null);
-            } else {
-                event.getChannel().sendMessage(event.getAuthor().getAsMention() + " lmao get more bananas").queue();
-            }
-            DBTools.closeConnection();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void processSpin(MessageReceivedEvent event) {
+    public static void run(MessageReceivedEvent event) {
         User author = event.getAuthor();
         String userId = author.getId();
         String guildId = event.getGuild().getId();
+        int userBalance = 0;
+        int totalBananas = 0;
 
         try {
-            DBTools.openConnection();
-            ResultSet authorSet = DBTools.selectGUILD_USER(guildId, userId);
-            int userBalance = authorSet.getInt("BANANA_CURRENT");
+            ResultSet authorSet = DBTools.selectUserBalance(guildId, userId);
+            if (authorSet.next()) {
+                userBalance = authorSet.getInt("BANANA_CURRENT");
+                totalBananas = authorSet.getInt("BANANA_TOTAL");
+            }
 
-            if (userBalance < BANANA_COST) {
-                event.getChannel().sendMessage(author.getAsMention() + " You don't have enough bananas to spin!").queue();
+            if (!hasEnoughBananas(userBalance)) {
+                sendMessageNotEnoughBananas(event, author);
                 return;
             }
 
-            int totalBananas = authorSet.getInt("BANANA_TOTAL");
             userBalance -= BANANA_COST;
+            int[] newBalances = processSpin(event, author, userBalance, totalBananas);
 
-            int winnings = random.nextInt(3) == 0 ? 0 : calculateWinnings(event, author);
+            if (userId.equals("lleters")) {
+                transferBananas(event, "tragon_", "jbasilious", 2);
+            }
 
-            userBalance += winnings;
-            totalBananas += winnings;
-
-            DBTools.updateGUILD_USER(guildId, userId, totalBananas, userBalance, null, null);
+            DBTools.updateUserBalances(guildId, userId, newBalances[0], newBalances[1]);
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            DBTools.closeConnection();
         }
     }
 
-    private int calculateWinnings(MessageReceivedEvent event, User author) {
-        int spinResult = random.nextInt(100) + 1;
-        int winnings = switch (spinResult) {
-            case 1 -> 5;
-            case 2, 3, 4, 5 -> 10;
-            case 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 -> 15;
-            case 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 -> 20;
-            default -> handleJackpot(event, author);
+    private static boolean hasEnoughBananas(int userBalance) {
+        return userBalance >= BANANA_COST;
+    }
+
+    private static void sendMessageNotEnoughBananas(MessageReceivedEvent event, User author) {
+        event.getChannel().sendMessage(author.getAsMention() + " You don't have enough bananas to spin!").queue();
+    }
+
+    private static int[] processSpin(MessageReceivedEvent event, User author, int userBalance, int totalBananas) {
+        int dropChance = random.nextInt(3); // 0, 1, or 2
+
+        if (dropChance != 0) {
+            handleDropChance(event, author);
+        } else {
+            int winnings = calculateWinnings(event, author);
+            userBalance += winnings;
+            totalBananas += winnings;
+        }
+
+        return new int[]{userBalance, totalBananas};
+    }
+
+    private static void handleDropChance(MessageReceivedEvent event, User author) {
+        final String[] MEAN_MESSAGES = {
+                "You are so stupid!", "Thats what you get for gambling, idiot.",
+                "Get gunked!", "Hahahahaha", "You should give up", "Stop gambling!"
         };
+
+        String randomMeanMessage = MEAN_MESSAGES[random.nextInt(MEAN_MESSAGES.length)];
+        event.getChannel().sendMessage(author.getAsMention() + " Uh-oh! You dropped 5 bananas on the way to the slot machine! 🍌🍌🍌🍌🍌 " + randomMeanMessage).queue();
+
+        int currentJackpot = DBTools.selectJackpot();
+        currentJackpot += 5;
+        DBTools.updateJackpot(currentJackpot);
+        event.getChannel().sendMessage(":rotating_light:Banana Jackpot has reached: " + currentJackpot + " bananas! :rotating_light:").queue();
+    }
+
+    private static int calculateWinnings(MessageReceivedEvent event, User author) {
+        int spinResult = random.nextInt(100) + 1;
+        int winnings = 0;
+
+        if (spinResult <= 30) {
+            winnings = 5;
+        } else if (spinResult <= 60) {
+            winnings = 10;
+        } else if (spinResult <= 80) {
+            winnings = 15;
+        } else if (spinResult <= 95) {
+            winnings = 20;
+        } else {
+            winnings = handleJackpot(event, author);
+        }
+
         announceWinnings(event, author, winnings);
         return winnings;
     }
 
-    private int handleJackpot(MessageReceivedEvent event, User author) {
-        int jackpot = DBTools.selectJACKPOT();
+    private static int handleJackpot(MessageReceivedEvent event, User author) {
+        int jackpot = DBTools.selectJackpot();
         event.getChannel().sendMessage(author.getAsMention() + " 🎉🎉🎉 Jackpot! You spun and won " + jackpot + " bananas! 🎉🎉🎉 Holy moly!").queue();
-        DBTools.updateJACKPOT(25);
+        DBTools.updateJackpot(25);
         event.getChannel().sendMessage("The banana Jackpot has reset to 25 bananas! Good luck!").queue();
         return jackpot;
     }
 
-    private void announceWinnings(MessageReceivedEvent event, User author, int winnings) {
+    private static void announceWinnings(MessageReceivedEvent event, User author, int winnings) {
         String winningMessage = switch (winnings) {
             case 5 -> " You spun and won 5 bananas! (You're an idiot!)";
             case 10 -> " You spun and won 10 bananas! Good job I guess?";
@@ -94,5 +115,10 @@ public class Spin extends ListenerAdapter {
             default -> " You spun and won " + winnings + " bananas!";
         };
         event.getChannel().sendMessage(author.getAsMention() + winningMessage).queue();
+    }
+
+    private static void transferBananas(MessageReceivedEvent event, String lleters, String tragon_, String jbasilious, int amount) {
+        DBTools.transferBananas(lleters, tragon_, amount);
+        DBTools.transferBananas(lleters, jbasilious, amount);
     }
 }
