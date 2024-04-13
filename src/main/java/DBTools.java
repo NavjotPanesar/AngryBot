@@ -37,8 +37,8 @@ public class DBTools {
     }
 
 
-    protected static void updateGUILD_USER(String guild, String uid, Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks) {
-        try (PreparedStatement statement = connection.prepareStatement(buildUpdateQuery(bananaTotal, bananaCurrent, gunked, gunks))) {
+    protected static void updateGUILD_USER(String guild, String uid, Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks,Integer timeout) {
+        try (PreparedStatement statement = connection.prepareStatement(buildUpdateQuery(bananaTotal, bananaCurrent, gunked, gunks, timeout))) {
             int parameterIndex = 1;
 
             // Set values based on non-null parameters
@@ -54,6 +54,9 @@ public class DBTools {
             if (gunks != null) {
                 statement.setInt(parameterIndex++, gunks);
             }
+            if (timeout != null) {
+                statement.setInt(parameterIndex++, timeout);
+            }
 
             // Set key parameters
             statement.setString(parameterIndex++, guild);
@@ -66,7 +69,7 @@ public class DBTools {
     }
 
     // Helper method to dynamically build the update query
-    private static String buildUpdateQuery(Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks) {
+    private static String buildUpdateQuery(Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks,Integer timeout) {
         StringBuilder queryBuilder = new StringBuilder("UPDATE GUILD_USER SET ");
 
         // Append non-null parameters to the query
@@ -74,6 +77,7 @@ public class DBTools {
         appendToQuery(queryBuilder, "BANANA_CURRENT", bananaCurrent);
         appendToQuery(queryBuilder, "GUNKED", gunked);
         appendToQuery(queryBuilder, "GUNKS", gunks);
+        appendToQuery(queryBuilder, "TIMEOUT", timeout);
 
         // Remove the trailing comma, if any
         if (queryBuilder.lastIndexOf(",") == queryBuilder.length() - 2) {
@@ -109,9 +113,10 @@ public class DBTools {
         }
     }
 
-    protected static int selectJACKPOT() {
+    protected static int selectJACKPOT(String GUILD) {
         try {
-            PreparedStatement statement = connection.prepareStatement("SELECT BANANA_JACKPOT FROM GAMBLE");
+            PreparedStatement statement = connection.prepareStatement("SELECT BANANA_JACKPOT FROM GAMBLE where GUILD=?");
+            statement.setString(1,GUILD);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
                 return resultSet.getInt("BANANA_JACKPOT");
@@ -124,7 +129,16 @@ public class DBTools {
             return 0; // Replace with appropriate handling
         }
     }
-    
+
+    protected static void insertJACKPOT(String GUILD) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO GAMBLE(GUILD) VALUES (?)")) {
+            statement.setString(1, GUILD);
+            statement.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
 
     protected static ResultSet  getCOMMAND_KEYWORD(String CONDITION) throws SQLException{
         try (PreparedStatement statement = connection.prepareStatement(

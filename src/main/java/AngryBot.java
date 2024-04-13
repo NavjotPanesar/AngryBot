@@ -44,6 +44,11 @@ public class AngryBot extends ListenerAdapter {
     private static JDA jda;
     private  User brendan;
     private  PrivateChannel brendansDM ;
+    private static Map<String, List<Long>> userMessageTimes = new HashMap<>();
+    private static final int SPAM_MESSAGE_THRESHOLD = 40; // Adjust this to the number of messages to consider as spam
+    private static final int SPAM_TIME_WINDOW_SECONDS = 60; // Adjust this to the time window in seconds
+    private final Set<String> spamTimeoutUsers = new HashSet<>();
+    private static final int SPAM_TIMEOUT_DURATION = 300; // 300 seconds (5 minutes)
 
     InputStream in;
     public AngryBot() {
@@ -61,6 +66,7 @@ public class AngryBot extends ListenerAdapter {
         commands.put("score", () -> BananaScore.run(mostRecentEvent));
         commands.put("spin", () -> Spin.run(mostRecentEvent));
         commands.put("jackpot", () -> Jackpot.run(mostRecentEvent));
+        commands.put("name", () -> name.run(mostRecentEvent));
         Sherpa.initializeList();
 
         jda = JDABuilder.createDefault(Config.BOT_TOKEN)
@@ -108,6 +114,8 @@ public class AngryBot extends ListenerAdapter {
     public void onGuildJoin(GuildJoinEvent event) {
         try {
             DBTools.openConnection();
+            DBTools.insertJACKPOT(event.getGuild().getId());
+
             List<Member> members = event.getGuild().getMembers();
             String GID = event.getGuild().getId();
             for (Member m : members) {
@@ -147,126 +155,70 @@ public class AngryBot extends ListenerAdapter {
             System.out.println("Timeout User: " + event.getUser().getId()+ "  " + event.getNewTimeOutEnd());
             event.getMember().removeTimeout().queue();
         }
+        try{
+            DBTools.openConnection();
+            int timeout = 1 + DBTools.selectGUILD_USER(event.getGuild().getId(),event.getUser().getId()).getInt("TIMEOUT");
+            DBTools.updateGUILD_USER(event.getGuild().getId(),event.getUser().getId(),null,null,null,null,timeout);
+            DBTools.closeConnection();
+        }catch (SQLException e){
+
+        }
     }
 
-    private static Map<String, List<Long>> userMessageTimes = new HashMap<>();
-    private static final int SPAM_MESSAGE_THRESHOLD = 40; // Adjust this to the number of messages to consider as spam
-    private static final int SPAM_TIME_WINDOW_SECONDS = 60; // Adjust this to the time window in seconds
-    private final Set<String> spamTimeoutUsers = new HashSet<>();
-    private static final int SPAM_TIMEOUT_DURATION = 300; // 300 seconds (5 minutes)
-    
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
+
+     //   event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById("1149411432778174474")), "I love Gorbs Bungus").queue();
+
+
+
         User user = event.getAuthor();
         String userId = user.getId();
         String content = event.getMessage().getContentRaw();
 
-        if (user.isBot()) {
-            return; // Ignore messages sent by the bot itself
-        }
-        // Check if the user is in spam timeout
-        if (spamTimeoutUsers.contains(userId)) {
-            return;
-        }
+        if (user.isBot() || spamTimeoutUsers.contains(userId)) return; // Ignore messages sent by the bot itself & Check if the user is in spam timeout
 
         // Check if the user is spamming
         if (isSpamming(user,content)) {
             sendFunnyJoke(event);
             return;
         }
-    
+
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        //~~~~~~~~~ BANANA DROP HANDLING ~~~~~~~~~~~~~~~
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
         int randomNum = ThreadLocalRandom.current().nextInt(0, 100001);
-    
+
         // Customizable drop rates
         double regularBananaRate = 1.0 / 20;      // 1/20    chance
         double rareBananaRate = 1.0 / 500;        // 1/500   chance
         double epicBananaRate = 1.0 / 2000;       // 1/2000  chance
         double uniqueBananaRate = 1.0 / 5000;     // 1/5000  chance
         double legendaryBananaRate = 1.0 / 20000; // 1/20000 chance
-        System.out.println("randomNum = " + randomNum);
         if (randomNum < regularBananaRate * 100000) {
-            // Regular banana
-            event.getMessage().addReaction(Emoji.fromUnicode("U+1F34C")).queue();
-            handleBananaEvent(event, 1);
+            event.getMessage().addReaction(Emoji.fromUnicode("U+1F34C")).queue(); // Regular banana
+            handleBananaEvent(event,1);
         } else if (randomNum < (regularBananaRate + rareBananaRate) * 100000) {
-            // Rare banana
-            try {
-                // Get the resource as a stream
-                in = getClass().getClassLoader().getResourceAsStream("bananas/rare_banana.png");
-
-                // Create a temporary file to copy the stream data into
-                File tempFile = File.createTempFile("image", ".png");
-                tempFile.deleteOnExit();
-                Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                // Send the image as a file in a message
-                event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            handleBananaEvent(event, 5);
+            sendBananaImage(event, "rare_banana.png", 5);
         } else if (randomNum < (regularBananaRate + rareBananaRate + epicBananaRate) * 100000) {
-            // Epic banana
-            try {
-                // Get the resource as a stream
-                in = getClass().getClassLoader().getResourceAsStream("bananas/epic_banana.png");
-
-                // Create a temporary file to copy the stream data into
-                File tempFile = File.createTempFile("image", ".png");
-                tempFile.deleteOnExit();
-                Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                // Send the image as a file in a message
-                event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            handleBananaEvent(event, 10);
+            sendBananaImage(event, "epic_banana.png", 10);
         } else if (randomNum < (regularBananaRate + rareBananaRate + epicBananaRate + uniqueBananaRate) * 100000) {
-            // Unique banana
-            try {
-                // Get the resource as a stream
-                in = getClass().getClassLoader().getResourceAsStream("bananas/unique_banana.png");
-
-                // Create a temporary file to copy the stream data into
-                File tempFile = File.createTempFile("image", ".png");
-                tempFile.deleteOnExit();
-                Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                // Send the image as a file in a message
-                event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            handleBananaEvent(event, 25);
+            sendBananaImage(event, "unique_banana.png", 25);
         } else if (randomNum < (regularBananaRate + rareBananaRate + epicBananaRate + uniqueBananaRate + legendaryBananaRate) * 100000) {
-            // Legendary banana
-            try {
-                // Get the resource as a stream
-                in = getClass().getClassLoader().getResourceAsStream("bananas/legendary_banana.png");
-
-                // Create a temporary file to copy the stream data into
-                File tempFile = File.createTempFile("image", ".png");
-                tempFile.deleteOnExit();
-                Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                // Send the image as a file in a message
-                event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            handleBananaEvent(event, 100);
+            sendBananaImage(event, "legendary_banana.png", 100);
         }
+
 
         updateUserMessageTime(userId);
         mostRecentEvent = event;
 
         ListIterator<Role> roles = Objects.requireNonNull(event.getMember()).getRoles().listIterator();
-        //Message message = event.getMessage();
-        //String content = message.getContentRaw().toLowerCase();
 
-
- if(event.getAuthor().getId().equals("1149411432778174474")){
+            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            //~~~~~~~~~ COMMAND HANDLING ~~~~~~~~~~~~~~~
+            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if(event.getAuthor().getId().equals("1149411432778174474")){  //reply NO / NO U to lleters
             if (content.equalsIgnoreCase("No")) {
 
                 try {
@@ -285,7 +237,7 @@ public class AngryBot extends ListenerAdapter {
                 }
                 return;
             }
-        }       else if(event.getAuthor().getId().equals("764537809045815322")){
+        }       else if(event.getAuthor().getId().equals("764537809045815322")){  //reply no u / boot fucker to turd fergeson
             if (content.equalsIgnoreCase("boot fucker")) {
 
                 try {
@@ -305,21 +257,21 @@ public class AngryBot extends ListenerAdapter {
                 return;
             }
         }
-     // Check if the message is a command
-     if (content.startsWith(command)) {
-        String[] commandParts = content.substring(command.length()).split(" ");
-        String commandContent = commandParts[0].toLowerCase();
+        // Check if the message is a command
+        if (content.startsWith(command)) {
+            String[] commandParts = content.substring(command.length()).split(" ");
+            String commandContent = commandParts[0].toLowerCase();
 
-        if (commands.containsKey(commandContent)) {
-            commands.get(commandContent).run();
-        } else {
-            // Handle unknown command
-            //event.getChannel().sendMessage("Unknown command: " + content).queue();
+            if (commands.containsKey(commandContent)) {
+                commands.get(commandContent).run();
+            } else {
+                // Handle unknown command
+                //event.getChannel().sendMessage("Unknown command: " + content).queue();
+            }
+            return;
         }
-        return;
-    }
 
-    ListIterator<String> triggers = Sherpa.TriggerWords.listIterator();
+        ListIterator<String> triggers = Sherpa.TriggerWords.listIterator();
         while (triggers.hasNext()) {
             if (content.contains(triggers.next()) && Tools.containsParserTypes(content)){
                 Sherpa.replySherpa(event);
@@ -328,7 +280,22 @@ public class AngryBot extends ListenerAdapter {
         }
 
     }
-
+    private void sendBananaImage(MessageReceivedEvent event, String imageName, int points) {
+        try {
+            InputStream in = getClass().getClassLoader().getResourceAsStream("bananas/" + imageName);
+            if (in == null) {
+                throw new IllegalArgumentException("Image resource not found: " + imageName);
+            }
+            File tempFile = File.createTempFile("image", ".png");
+            tempFile.deleteOnExit();
+            Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            event.getMessage().replyFiles(FileUpload.fromData(tempFile)).queue();
+            handleBananaEvent(event, points);                                     //remember to change this
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Handle the error appropriately
+        }
+    }
     private boolean isSpamming(User user, String content) {
         String userId = user.getId();
     
@@ -362,14 +329,10 @@ public class AngryBot extends ListenerAdapter {
     
         return false;
     }
-    
-    
-
     private void sendFunnyJoke(MessageReceivedEvent event) {
         User user = event.getAuthor();
         event.getChannel().sendMessage(user.getAsMention() + ", whoops! You tripped over a banana peel and can't find any bananas for a while. 🍌").queue();
     }
-
     private void updateUserMessageTime(String userId) {
         // Update the user's message time
         if (userMessageTimes.containsKey(userId)) {
@@ -379,7 +342,6 @@ public class AngryBot extends ListenerAdapter {
             userMessageTimes.put(userId, new ArrayList<>(Collections.singletonList(System.currentTimeMillis())));
         }
     }
-
     private void scheduleRemoveFromTimeout(String userId) {
         // Schedule a task to remove the user from spam timeout after the specified duration
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -424,12 +386,12 @@ public class AngryBot extends ListenerAdapter {
             ResultSet set = DBTools.selectGUILD_USER(event.getGuild().getId(), event.getAuthor().getId());
             int total = bananaValue + set.getInt("BANANA_TOTAL");
             int current = bananaValue + set.getInt("BANANA_CURRENT");
-            DBTools.updateGUILD_USER(event.getGuild().getId(),event.getAuthor().getId(),total,current,null,null);
+            DBTools.updateGUILD_USER(event.getGuild().getId(),event.getAuthor().getId(),total,current,null,null,null);
             DBTools.closeConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
 
 }

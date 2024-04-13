@@ -12,6 +12,7 @@ public class Spin {
     private static int userBalance;
     private static int totalBananas;
     public static void run(MessageReceivedEvent event) {
+        if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return; //only run during 3 and 5pm MST on thursday (angry livestream time)
         User author = event.getMessage().getAuthor();
         String userId = author.getId();
         String guildId = event.getGuild().getId();
@@ -30,7 +31,7 @@ public class Spin {
             userBalance -= BANANA_COST;
             processSpin(event, author);
 
-            DBTools.updateGUILD_USER(guildId, userId, totalBananas, userBalance, null, null);
+            DBTools.updateGUILD_USER(guildId, userId, totalBananas, userBalance, null, null,null);
             DBTools.closeConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -66,7 +67,7 @@ public class Spin {
         String randomMeanMessage = MEAN_MESSAGES[random.nextInt(MEAN_MESSAGES.length)];
         event.getChannel().sendMessage(author.getAsMention() + " Uh-oh! You dropped 5 bananas on the way to the slot machine! 🍌🍌🍌🍌🍌 " + randomMeanMessage).queue();
 
-        int currentJackpot = DBTools.selectJACKPOT();
+        int currentJackpot = DBTools.selectJACKPOT(event.getGuild().getId());
         currentJackpot += 5;
         DBTools.updateJACKPOT(currentJackpot);
         event.getChannel().sendMessage(":rotating_light:Banana Jackpot has reached: " + currentJackpot + " bananas! :rotating_light:").queue();
@@ -95,7 +96,7 @@ public class Spin {
     }
 
     private static int handleJackpot(MessageReceivedEvent event, User author) {
-        int jackpot = DBTools.selectJACKPOT();
+        int jackpot = DBTools.selectJACKPOT(event.getGuild().getId());
         event.getChannel().sendMessage(author.getAsMention() + " 🎉🎉🎉 Jackpot! You spun and won " + jackpot + " bananas! 🎉🎉🎉 Holy moly!").queue();
         DBTools.updateJACKPOT(25);
         event.getChannel().sendMessage("The banana Jackpot has reset to 25 bananas! Good luck!").queue();
