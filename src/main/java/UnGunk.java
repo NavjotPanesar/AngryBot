@@ -28,7 +28,7 @@ public class UnGunk {
             } else for (User u : users) {
 
                 ID = u.getId();
-                event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById(ID)), u.getName()).queue();
+                event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById(ID)), u.getGlobalName()).queue();
                 bananaCost += 5;
 
 
@@ -38,7 +38,7 @@ public class UnGunk {
             bananaCost = DBTools.selectGUILD_USER(event.getGuild().getId(), author.getId()).getInt("BANANA_CURRENT") - bananaCost;
 
 
-            DBTools.updateGUILD_USER(event.getGuild().getId(), author.getId(), null, bananaCost, null, null);
+            DBTools.updateGUILD_USER(event.getGuild().getId(), author.getId(), null, bananaCost, null, null,null);
 
             DBTools.closeConnection();
         } catch (SQLException e) {
