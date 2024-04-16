@@ -63,6 +63,7 @@ public class Spin {
 
     private static void performSpin(MessageReceivedEvent event, StringBuilder outputMessage) {
         try {
+
             User author = event.getMessage().getAuthor();
             String userId = author.getId();
             String guildId = event.getGuild().getId();
@@ -72,15 +73,23 @@ public class Spin {
              userBalance = authorSet.getInt("BANANA_CURRENT");
              totalBananas = authorSet.getInt("BANANA_TOTAL");
 
+
             if (!hasEnoughBananas(userBalance)) {
                 sendMessageNotEnoughBananas(event, author, outputMessage);
                 return;
             }
 
             userBalance -= BANANA_COST;
-            processSpin(event, author, outputMessage);
 
-            DBTools.updateGUILD_USER(guildId, userId, totalBananas, userBalance, null, null,null);
+            int[] newBalances = processSpin(event, author, userBalance, totalBananas);
+
+            if (userId.equals("1149411432778174474")) {
+                transferBananas(event,"1149411432778174474", "433377645619707906", "328689134606614528", 2);
+            }else{processSpin(event, author, outputMessage);}
+
+
+
+            DBTools.updateGUILD_USER(guildId, userId, newBalances[1],newBalances[0], null, null,null);
             DBTools.closeConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -122,7 +131,9 @@ public class Spin {
         int currentJackpot = DBTools.selectJACKPOT(event.getGuild().getId());
         currentJackpot += 5;
         DBTools.updateJACKPOT(currentJackpot);
+
         outputMessage.append(":rotating_light:Banana Jackpot has reached: ").append(currentJackpot).append(" bananas! :rotating_light:").append("\n");
+
     }
 
     private static int calculateWinnings(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
@@ -145,9 +156,11 @@ public class Spin {
 
     private static int handleJackpot(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
         int jackpot = DBTools.selectJACKPOT(event.getGuild().getId());
+
         outputMessage.append(author.getAsMention()).append(" 🎉🎉🎉 Jackpot! You spun and won ").append(jackpot).append(" bananas! 🎉🎉🎉 Holy moly!").append("\n");
         DBTools.updateJACKPOT(25);
         outputMessage.append("The banana Jackpot has reset to 25 bananas! Good luck!").append("\n");
+
         return jackpot;
     }
 

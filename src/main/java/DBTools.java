@@ -6,7 +6,7 @@ public class DBTools {
 
     protected static void openConnection() throws SQLException {
         try {
-            connection = DriverManager.getConnection(Config.DB_URL, Config.DB_USER, Config.DB_PASS);
+            connection = DriverManager.getConnection(Config.DB_URL(), Config.DB_USER(), Config.DB_PASS());
             System.out.println("VALID: " + connection.isValid(5));
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -193,7 +193,9 @@ public class DBTools {
     private static String buildUpdateBananaJackpotQuery() {
         return "UPDATE GAMBLE SET BANANA_JACKPOT = ?";
     }
-    
+
+    public static void transferBananas(String lleters, String jbasilious, int amount) {
+    }
 }
 
 
