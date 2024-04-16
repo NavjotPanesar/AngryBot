@@ -78,6 +78,18 @@ public class DBTools {
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
+
+        if (delta > 0 ){
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE GUILD_USER SET BANANA_TOTAL=BANANA_TOTAL+? WHERE GUILD = ? AND UID = ?")) {
+                statement.setInt(1, delta);
+                statement.setString(2, GUILD);
+                statement.setString(3, UID);
+                statement.executeUpdate();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
     }
 
     // Helper method to dynamically build the update query
