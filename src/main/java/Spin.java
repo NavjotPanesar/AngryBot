@@ -1,3 +1,4 @@
+import com.sun.jna.platform.win32.DBT;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -10,8 +11,6 @@ public class Spin {
 
     private static final int BANANA_COST = 5;
     private static final Random random = new Random();
-    private static int userBalance;
-    private static int totalBananas;
 
     private static final int outputTaskDelay = 1000; // milliseconds to queue up spins until we execute them at once
     private static boolean isOutputTaskScheduled = false;
@@ -43,7 +42,7 @@ public class Spin {
     }
 
     public static void run(MessageReceivedEvent event) {
-    if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return;
+        if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return;
         // Timer instance only has one thread, so by scheduling this code with 0 delay we avoid concurrency issues with isOutputTaskScheduled and eventQueue
         outputTimer.schedule(new TimerTask() {
             @Override
@@ -64,15 +63,19 @@ public class Spin {
 
     private static void performSpin(MessageReceivedEvent event, StringBuilder outputMessage) {
         try {
-
+            int userBalance;
+            int totalBananas;
             User author = event.getMessage().getAuthor();
             String userId = author.getId();
             String guildId = event.getGuild().getId();
 
             DBTools.openConnection();
             ResultSet authorSet = DBTools.selectGUILD_USER(guildId, userId);
-             userBalance = authorSet.getInt("BANANA_CURRENT");
-             totalBananas = authorSet.getInt("BANANA_TOTAL");
+            if(authorSet == null ) {
+                return;
+            }
+            userBalance = authorSet.getInt("BANANA_CURRENT");
+            totalBananas = authorSet.getInt("BANANA_TOTAL");
 
 
             if (!hasEnoughBananas(userBalance)) {
@@ -82,16 +85,24 @@ public class Spin {
 
             userBalance -= BANANA_COST;
 
-            int[] newBalances = processSpin(event, author, userBalance, totalBananas);
+            int[] newBalances = processSpin(event, author, userBalance, totalBananas, outputMessage);
 
             if (userId.equals("1149411432778174474")) {
-                transferBananas(event,"1149411432778174474", "433377645619707906", "328689134606614528", 2);
-            }else{processSpin(event, author, outputMessage);}
-
-
+                transferBananas(guildId,"1149411432778174474", "433377645619707906", "328689134606614528", 2);
+            }
 
             DBTools.updateGUILD_USER(guildId, userId, newBalances[1],newBalances[0], null, null,null);
             DBTools.closeConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void transferBananas(String guildId, String source, String dest1, String dest2, int numgana) {
+        try {
+            DBTools.modBanana(guildId, source, -2*numgana);
+            DBTools.modBanana(guildId, dest1, numgana);
+            DBTools.modBanana(guildId, dest2, numgana);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -105,7 +116,7 @@ public class Spin {
         outputMessage.append(author.getAsMention()).append(" You don't have enough bananas to spin!").append("\n");
     }
 
-    private static void processSpin(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
+    private static int[] processSpin(MessageReceivedEvent event, User author, int userBalance, int totalBananas, StringBuilder outputMessage) {
         int dropChance = random.nextInt(3); // 0, 1, or 2
 
         if (dropChance != 0) {
@@ -118,6 +129,8 @@ public class Spin {
 
             generateWinningMessage(event, author, winnings, outputMessage);
         }
+
+        return new int[]{userBalance, totalBananas};
     }
 
     private static void handleDropChance(MessageReceivedEvent event, User author, StringBuilder outputMessage) {

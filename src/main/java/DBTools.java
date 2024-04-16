@@ -68,6 +68,18 @@ public class DBTools {
         }
     }
 
+    protected static void modBanana(String GUILD, String UID, Integer delta) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE GUILD_USER SET BANANA_CURRENT=BANANA_CURRENT+? WHERE GUILD = ? AND UID = ?")) {
+            statement.setInt(1, delta);
+            statement.setString(2, GUILD);
+            statement.setString(3, UID);
+            statement.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
     // Helper method to dynamically build the update query
     private static String buildUpdateQuery(Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks,Integer timeout) {
         StringBuilder queryBuilder = new StringBuilder("UPDATE GUILD_USER SET ");
@@ -194,8 +206,6 @@ public class DBTools {
         return "UPDATE GAMBLE SET BANANA_JACKPOT = ?";
     }
 
-    public static void transferBananas(String lleters, String jbasilious, int amount) {
-    }
 }
 
 
