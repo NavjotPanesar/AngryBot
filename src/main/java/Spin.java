@@ -43,6 +43,7 @@ public class Spin {
     }
 
     public static void run(MessageReceivedEvent event) {
+    if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return;
         // Timer instance only has one thread, so by scheduling this code with 0 delay we avoid concurrency issues with isOutputTaskScheduled and eventQueue
         outputTimer.schedule(new TimerTask() {
             @Override
