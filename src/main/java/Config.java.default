@@ -1,0 +1,17 @@
+public class Config {
+    public static String DB_URL() {
+        return System.getenv("DB_URL");
+    }
+
+    public static String DB_USER() {
+        return System.getenv("DB_USER");
+    }
+
+    public static String DB_PASS() {
+        return System.getenv("DB_PASS");
+    }
+
+    public static String BOT_TOKEN() {
+        return System.getenv("BOT_TOKEN");
+    }
+}

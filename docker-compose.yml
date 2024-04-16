@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+
+  db:
+    image: mariadb:10.11
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: example
+    ports:
+      - 3306:3306
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+  bot:
+    build: ./
+    restart: always
+    environment:
+      DB_URL: jdbc:mariadb://db/bagana
+      DB_USER: root
+      DB_PASS: example
+      BOT_TOKEN: token_placeholder
+    depends_on:
+      - db
