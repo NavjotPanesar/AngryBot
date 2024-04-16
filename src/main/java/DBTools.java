@@ -193,7 +193,9 @@ public class DBTools {
     private static String buildUpdateBananaJackpotQuery() {
         return "UPDATE GAMBLE SET BANANA_JACKPOT = ?";
     }
-    
+
+    public static void transferBananas(String lleters, String jbasilious, int amount) {
+    }
 }
 
 

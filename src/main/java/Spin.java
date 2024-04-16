@@ -21,7 +21,7 @@ public class Spin {
         int totalBananas = 0;
 
         try {
-            ResultSet authorSet = DBTools.selectUserBalance(guildId, userId);
+            ResultSet authorSet = DBTools.selectGUILD_USER(guildId, userId);
             if (authorSet.next()) {
                 userBalance = authorSet.getInt("BANANA_CURRENT");
                 totalBananas = authorSet.getInt("BANANA_TOTAL");
@@ -39,9 +39,8 @@ public class Spin {
                 transferBananas(event,"1149411432778174474", "433377645619707906", "328689134606614528", 2);
             }
 
-            DBTools.updateUserBalances(guildId, userId, newBalances[0], newBalances[1]);
 
-            DBTools.updateGUILD_USER(guildId, userId, totalBananas, userBalance, null, null,null);
+            DBTools.updateGUILD_USER(guildId, userId, newBalances[1],newBalances[0], null, null,null);
             DBTools.closeConnection();
 
         } catch (SQLException e) {
@@ -84,7 +83,7 @@ public class Spin {
         int currentJackpot = DBTools.selectJACKPOT(event.getGuild().getId());
 
         currentJackpot += 5;
-        DBTools.updateJackpot(currentJackpot);
+        DBTools.updateJACKPOT(currentJackpot);
         event.getChannel().sendMessage(":rotating_light:Banana Jackpot has reached: " + currentJackpot + " bananas! :rotating_light:").queue();
     }
 
@@ -112,7 +111,7 @@ public class Spin {
 
         int jackpot = DBTools.selectJACKPOT(event.getGuild().getId());
         event.getChannel().sendMessage(author.getAsMention() + " 🎉🎉🎉 Jackpot! You spun and won " + jackpot + " bananas! 🎉🎉🎉 Holy moly!").queue();
-        DBTools.updateJackpot(25);
+        DBTools.updateJACKPOT(25);
         event.getChannel().sendMessage("The banana Jackpot has reset to 25 bananas! Good luck!").queue();
         return jackpot;
     }
