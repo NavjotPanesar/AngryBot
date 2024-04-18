@@ -6,7 +6,7 @@ public class DBTools {
 
     protected static void openConnection() throws SQLException {
         try {
-            connection = DriverManager.getConnection(Config.DB_URL(), Config.DB_USER(), Config.DB_PASS());
+            connection = DriverManager.getConnection(Config.DB_URL, Config.DB_USER, Config.DB_PASS);
             System.out.println("VALID: " + connection.isValid(5));
         } catch (SQLException throwables) {
             throwables.printStackTrace();

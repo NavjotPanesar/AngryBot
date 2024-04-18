@@ -70,7 +70,7 @@ public class AngryBot extends ListenerAdapter {
         Sherpa.initializeList();
 
 
-        jda = JDABuilder.createDefault(Config.BOT_TOKEN())
+        jda = JDABuilder.createDefault(Config.BOT_TOKEN)
                 .enableIntents(GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
                 .addEventListeners(new AngryBot())
                 .setChunkingFilter(ChunkingFilter.ALL) // enable member chunking for all guilds
