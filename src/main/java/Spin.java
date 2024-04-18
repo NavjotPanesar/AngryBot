@@ -6,6 +6,9 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Spin {
 
@@ -13,27 +16,29 @@ public class Spin {
     private static final Random random = new Random();
 
     private static final int outputTaskDelay = 1000; // milliseconds to queue up spins until we execute them at once
-    private static boolean isOutputTaskScheduled = false;
+    private static AtomicBoolean isOutputTaskScheduled = new AtomicBoolean(false);
     private static Timer outputTimer = new Timer();
-    private static Map<MessageChannelUnion, Queue<MessageReceivedEvent>> eventQueues = new HashMap<>(); // map [channel] -> [queue of events since the last output]
+    private static final ConcurrentHashMap<MessageChannelUnion, ConcurrentLinkedQueue<MessageReceivedEvent>> eventQueues = new ConcurrentHashMap<>(); // map [channel] -> [queue of events since the last output]
 
     public static void scheduleOutputTask() {
         outputTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                isOutputTaskScheduled = false;
-
+                isOutputTaskScheduled.set(false);
                 // go through the event queue per channel
-                for(Map.Entry<MessageChannelUnion, Queue<MessageReceivedEvent>> entry: eventQueues.entrySet()) {
+                for(Map.Entry<MessageChannelUnion, ConcurrentLinkedQueue<MessageReceivedEvent>> entry: eventQueues.entrySet()) {
                     MessageChannelUnion channel = entry.getKey();
                     Queue<MessageReceivedEvent> queue = entry.getValue();
-
-                    // execute all the spins for this channel, and send out the final combined output
                     StringBuilder outputBatchMessage = new StringBuilder();
-                    while(queue.peek() != null) {
+
+                    // need a max number of items to process - otherwise we might be here forever if produce rate > consume rate
+                    int numToRemove = queue.size();
+                    for(int i = 0; i < numToRemove; i++) {
                         MessageReceivedEvent event = queue.poll();
-                        performSpin(event, outputBatchMessage);
-                        outputBatchMessage.append("...\n");
+                        if(event != null) {
+                            performSpin(event, outputBatchMessage);
+                            outputBatchMessage.append("...\n");
+                        }
                     }
                     channel.sendMessage(outputBatchMessage.toString()).queue();
                 }
@@ -43,22 +48,15 @@ public class Spin {
 
     public static void run(MessageReceivedEvent event) {
         if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return;
-        // Timer instance only has one thread, so by scheduling this code with 0 delay we avoid concurrency issues with isOutputTaskScheduled and eventQueue
-        outputTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                MessageChannelUnion channel = event.getChannel();
-                if(!eventQueues.containsKey(channel)) {
-                    eventQueues.put(channel, new LinkedList<>());
-                }
-                eventQueues.get(channel).add(event);
-
-                if(!isOutputTaskScheduled) {
-                    isOutputTaskScheduled = true;
-                    scheduleOutputTask();
-                }
-            }
-        }, 0);
+        
+        MessageChannelUnion channel = event.getChannel();
+        // lazy init queue for perf
+        eventQueues.computeIfAbsent(channel, k -> new ConcurrentLinkedQueue<>()).add(event);
+        if(isOutputTaskScheduled.compareAndSet(false, true)) {
+            // since the data has been inserted already into the queue, we don't need to include the actual scheduling method inside our concurrency control
+            // worst case we double up on output tasks if compareAndSet executes after the isOutputTaskScheduled=false in the task execution
+            scheduleOutputTask();
+        }
     }
 
     private static void performSpin(MessageReceivedEvent event, StringBuilder outputMessage) {
