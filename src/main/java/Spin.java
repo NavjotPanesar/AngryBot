@@ -1,48 +1,106 @@
+import com.sun.jna.platform.win32.DBT;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Spin {
+
     private static final int BANANA_COST = 5;
     private static final Random random = new Random();
 
-    public static void run(MessageReceivedEvent event) {
+    private static final int outputTaskDelay = 1000; // milliseconds to queue up spins until we execute them at once
+    private static AtomicBoolean isOutputTaskScheduled = new AtomicBoolean(false);
+    private static Timer outputTimer = new Timer();
+    private static final ConcurrentHashMap<MessageChannelUnion, ConcurrentLinkedQueue<MessageReceivedEvent>> eventQueues = new ConcurrentHashMap<>(); // map [channel] -> [queue of events since the last output]
 
+    public static void scheduleOutputTask() {
+        outputTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                isOutputTaskScheduled.set(false);
+                // go through the event queue per channel
+                for(Map.Entry<MessageChannelUnion, ConcurrentLinkedQueue<MessageReceivedEvent>> entry: eventQueues.entrySet()) {
+                    MessageChannelUnion channel = entry.getKey();
+                    Queue<MessageReceivedEvent> queue = entry.getValue();
+                    StringBuilder outputBatchMessage = new StringBuilder();
 
-        if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return; //only run during 3 and 5pm MST on thursday (angry livestream time)
-        User author = event.getMessage().getAuthor();
-
-        String userId = author.getId();
-        String guildId = event.getGuild().getId();
-        int userBalance = 0;
-        int totalBananas = 0;
-
-        try {
-            ResultSet authorSet = DBTools.selectGUILD_USER(guildId, userId);
-            if (authorSet.next()) {
-                userBalance = authorSet.getInt("BANANA_CURRENT");
-                totalBananas = authorSet.getInt("BANANA_TOTAL");
+                    // need a max number of items to process - otherwise we might be here forever if produce rate > consume rate
+                    int numToRemove = queue.size();
+                    for(int i = 0; i < numToRemove; i++) {
+                        MessageReceivedEvent event = queue.poll();
+                        if(event != null) {
+                            performSpin(event, outputBatchMessage);
+                            outputBatchMessage.append("...\n");
+                        }
+                    }
+                    channel.sendMessage(outputBatchMessage.toString()).queue();
+                }
             }
+        }, outputTaskDelay);
+    }
+
+    public static void run(MessageReceivedEvent event) {
+        if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return;
+        
+        MessageChannelUnion channel = event.getChannel();
+        // lazy init queue for perf
+        eventQueues.computeIfAbsent(channel, k -> new ConcurrentLinkedQueue<>()).add(event);
+        if(isOutputTaskScheduled.compareAndSet(false, true)) {
+            // since the data has been inserted already into the queue, we don't need to include the actual scheduling method inside our concurrency control
+            // worst case we double up on output tasks if compareAndSet executes after the isOutputTaskScheduled=false in the task execution
+            scheduleOutputTask();
+        }
+    }
+
+    private static void performSpin(MessageReceivedEvent event, StringBuilder outputMessage) {
+        try {
+            int userBalance;
+            int totalBananas;
+            User author = event.getMessage().getAuthor();
+            String userId = author.getId();
+            String guildId = event.getGuild().getId();
+
+            DBTools.openConnection();
+            ResultSet authorSet = DBTools.selectGUILD_USER(guildId, userId);
+            if(authorSet == null ) {
+                return;
+            }
+            userBalance = authorSet.getInt("BANANA_CURRENT");
+            totalBananas = authorSet.getInt("BANANA_TOTAL");
+
 
             if (!hasEnoughBananas(userBalance)) {
-                sendMessageNotEnoughBananas(event, author);
+                sendMessageNotEnoughBananas(event, author, outputMessage);
                 return;
             }
 
             userBalance -= BANANA_COST;
-            int[] newBalances = processSpin(event, author, userBalance, totalBananas);
+
+            int[] newBalances = processSpin(event, author, userBalance, totalBananas, outputMessage);
 
             if (userId.equals("1149411432778174474")) {
-                transferBananas(event,"1149411432778174474", "433377645619707906", "328689134606614528", 2);
+                transferBananas(guildId,"1149411432778174474", "433377645619707906", "328689134606614528", 2);
             }
-
 
             DBTools.updateGUILD_USER(guildId, userId, newBalances[1],newBalances[0], null, null,null);
             DBTools.closeConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    private static void transferBananas(String guildId, String source, String dest1, String dest2, int numgana) {
+        try {
+            DBTools.modBanana(guildId, source, -2*numgana);
+            DBTools.modBanana(guildId, dest1, numgana);
+            DBTools.modBanana(guildId, dest2, numgana);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -52,42 +110,45 @@ public class Spin {
         return userBalance >= BANANA_COST;
     }
 
-    private static void sendMessageNotEnoughBananas(MessageReceivedEvent event, User author) {
-        event.getChannel().sendMessage(author.getAsMention() + " You don't have enough bananas to spin!").queue();
+    private static void sendMessageNotEnoughBananas(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
+        outputMessage.append(author.getAsMention()).append(" You don't have enough bananas to spin!").append("\n");
     }
 
-    private static int[] processSpin(MessageReceivedEvent event, User author, int userBalance, int totalBananas) {
+    private static int[] processSpin(MessageReceivedEvent event, User author, int userBalance, int totalBananas, StringBuilder outputMessage) {
         int dropChance = random.nextInt(3); // 0, 1, or 2
 
         if (dropChance != 0) {
-            handleDropChance(event, author);
+            handleDropChance(event, author, outputMessage);
         } else {
-            int winnings = calculateWinnings(event, author);
+            int winnings = calculateWinnings(event, author, outputMessage);
+
             userBalance += winnings;
             totalBananas += winnings;
+
+            generateWinningMessage(event, author, winnings, outputMessage);
         }
 
         return new int[]{userBalance, totalBananas};
     }
 
-    private static void handleDropChance(MessageReceivedEvent event, User author) {
+    private static void handleDropChance(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
         final String[] MEAN_MESSAGES = {
                 "You are so stupid!", "Thats what you get for gambling, idiot.",
                 "Get gunked!", "Hahahahaha", "You should give up", "Stop gambling!"
         };
 
         String randomMeanMessage = MEAN_MESSAGES[random.nextInt(MEAN_MESSAGES.length)];
-        event.getChannel().sendMessage(author.getAsMention() + " Uh-oh! You dropped 5 bananas on the way to the slot machine! 🍌🍌🍌🍌🍌 " + randomMeanMessage).queue();
-
+        outputMessage.append(author.getAsMention()).append(" Uh-oh! You dropped 5 bananas on the way to the slot machine! 🍌🍌🍌🍌🍌 ").append(randomMeanMessage).append("\n");
 
         int currentJackpot = DBTools.selectJACKPOT(event.getGuild().getId());
-
         currentJackpot += 5;
         DBTools.updateJACKPOT(currentJackpot);
-        event.getChannel().sendMessage(":rotating_light:Banana Jackpot has reached: " + currentJackpot + " bananas! :rotating_light:").queue();
+
+        outputMessage.append(":rotating_light:Banana Jackpot has reached: ").append(currentJackpot).append(" bananas! :rotating_light:").append("\n");
+
     }
 
-    private static int calculateWinnings(MessageReceivedEvent event, User author) {
+    private static int calculateWinnings(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
         int spinResult = random.nextInt(100) + 1;
         int winnings = 0;
 
@@ -100,23 +161,22 @@ public class Spin {
         } else if (spinResult <= 95) {
             winnings = 20;
         } else {
-            winnings = handleJackpot(event, author);
+            winnings = handleJackpot(event, author, outputMessage);
         }
-
-        announceWinnings(event, author, winnings);
         return winnings;
     }
 
-    private static int handleJackpot(MessageReceivedEvent event, User author) {
-
+    private static int handleJackpot(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
         int jackpot = DBTools.selectJACKPOT(event.getGuild().getId());
-        event.getChannel().sendMessage(author.getAsMention() + " 🎉🎉🎉 Jackpot! You spun and won " + jackpot + " bananas! 🎉🎉🎉 Holy moly!").queue();
+
+        outputMessage.append(author.getAsMention()).append(" 🎉🎉🎉 Jackpot! You spun and won ").append(jackpot).append(" bananas! 🎉🎉🎉 Holy moly!").append("\n");
         DBTools.updateJACKPOT(25);
-        event.getChannel().sendMessage("The banana Jackpot has reset to 25 bananas! Good luck!").queue();
+        outputMessage.append("The banana Jackpot has reset to 25 bananas! Good luck!").append("\n");
+
         return jackpot;
     }
 
-    private static void announceWinnings(MessageReceivedEvent event, User author, int winnings) {
+    private static void generateWinningMessage(MessageReceivedEvent event, User author, int winnings, StringBuilder outputString) {
         String winningMessage = switch (winnings) {
             case 5 -> " You spun and won 5 bananas! (You're an idiot!)";
             case 10 -> " You spun and won 10 bananas! Good job I guess?";
@@ -124,11 +184,7 @@ public class Spin {
             case 20 -> " You spun and won 20 bananas! Nice.";
             default -> " You spun and won " + winnings + " bananas!";
         };
-        event.getChannel().sendMessage(author.getAsMention() + winningMessage).queue();
-    }
 
-    private static void transferBananas(MessageReceivedEvent event, String lleters, String tragon_, String jbasilious, int amount) {
-        DBTools.transferBananas(lleters, tragon_, amount);
-        DBTools.transferBananas(lleters, jbasilious, amount);
+        outputString.append(author.getAsMention()).append(winningMessage).append("\n");
     }
 }
