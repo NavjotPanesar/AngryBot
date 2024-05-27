@@ -36,6 +36,27 @@ public class DBTools {
         }
     }
 
+    protected static int insertCard(String cardStyle, String title, String attribute, String level, String type, String description, String atk, String defe, int cost, String image_label, boolean shoppable) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO cards(card_style, title,attribute,level,type,description,atk,defe,cost,image_label,shoppable) VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
+            statement.setString(1, cardStyle);
+            statement.setString(2, title);
+            statement.setString(3, attribute);
+            statement.setString(4, level);
+            statement.setString(5, type);
+            statement.setString(6, description);
+            statement.setString(7, atk);
+            statement.setString(8, defe);
+            statement.setInt(9, cost);
+            statement.setString(10, image_label);
+            statement.setBoolean(11, shoppable);
+            return statement.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return 0;
+    }
+
 
     protected static void updateGUILD_USER(String guild, String uid, Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks,Integer timeout) {
         try (PreparedStatement statement = connection.prepareStatement(buildUpdateQuery(bananaTotal, bananaCurrent, gunked, gunks, timeout))) {
