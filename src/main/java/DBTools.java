@@ -6,7 +6,7 @@ public class DBTools {
 
     protected static void openConnection() throws SQLException {
         try {
-            connection = DriverManager.getConnection(Config.DB_URL, Config.DB_USER, Config.DB_PASS);
+            connection = DriverManager.getConnection(Config.DB_URL(), Config.DB_USER(), Config.DB_PASS());
             System.out.println("VALID: " + connection.isValid(5));
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -51,6 +51,18 @@ public class DBTools {
             statement.setString(10, image_label);
             statement.setBoolean(11, shoppable);
             return statement.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return 0;
+    }
+
+    protected static int getLatestCardId() throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT max(id) from cards")) {
+            var res = statement.executeQuery();
+            res.next();
+            return res.getInt(1);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
