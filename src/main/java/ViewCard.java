@@ -17,6 +17,7 @@ public class ViewCard {
             var messageText = event.getMessage().getContentDisplay();
             var params = event.getMessage().getContentDisplay().split(" ");
             var card_id = Integer.parseInt(params[1]);
+            var isGif = params.length >= 3 && (params[2]).equals("gif");
 
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl(Config.CARD_URL())
@@ -25,10 +26,10 @@ public class ViewCard {
 
             CardService service = retrofit.create(CardService.class);
 
-            var res = service.getCard(card_id).execute();
+            var res = isGif ? service.getSummon(card_id).execute() : service.getCard(card_id).execute();
             ResponseBody body = res.body();
             InputStream imageStream = body.byteStream();
-            event.getMessage().reply("Ebic card !!!").addFiles(FileUpload.fromData(imageStream, "card.png")).queue();
+            event.getMessage().reply("Ebic card !!!").addFiles(FileUpload.fromData(imageStream, isGif ? "card.gif" : "card.png")).queue();
 
             DBTools.closeConnection();
         } catch (Exception e) {

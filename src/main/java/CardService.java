@@ -11,4 +11,7 @@ public interface CardService {
 
     @GET("card")
     Call<ResponseBody> getCard(@Query("id") int id);
+
+    @GET("summon")
+    Call<ResponseBody> getSummon(@Query("id") int id);
 }
