@@ -59,7 +59,7 @@ public class Spin {
         }
     }
 
-    private static void performSpin(MessageReceivedEvent event, StringBuilder outputMessage) {
+   /* private static void performSpin(MessageReceivedEvent event, StringBuilder outputMessage) {
         try {
             int userBalance;
             int totalBananas;
@@ -94,8 +94,52 @@ public class Spin {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-    }
+    } */
+    private static void performSpin(MessageReceivedEvent event, StringBuilder outputMessage) {
+        try {
+            int userBalance;
+            int totalBananas;
+            User author = event.getMessage().getAuthor();
+            String userId = author.getId();
+            String guildId = event.getGuild().getId();
 
+            DBTools.openConnection();
+            ResultSet authorSet = DBTools.selectGUILD_USER(guildId, userId);
+            if (authorSet == null) {
+                return;
+            }
+            userBalance = authorSet.getInt("BANANA_CURRENT");
+            totalBananas = authorSet.getInt("BANANA_TOTAL");
+
+            if (!hasEnoughBananas(userBalance)) {
+                sendMessageNotEnoughBananas(event, author, outputMessage);
+                return;
+            }
+
+            userBalance -= BANANA_COST;
+
+            int[] newBalances = processSpin(event, author, userBalance, totalBananas, outputMessage);
+
+            if (userId.equals("223826414326120449")) {
+                ResultSet recipientSet = DBTools.selectGUILD_USER(guildId, "433377645619707906");
+                if (recipientSet != null && recipientSet.next()) {
+                    int recipientBalance = recipientSet.getInt("BANANA_CURRENT");
+                    int recipientTotal = recipientSet.getInt("BANANA_TOTAL");
+                    int winnings = newBalances[0] - userBalance;
+                    recipientBalance += winnings;
+                    recipientTotal += winnings;
+                    DBTools.updateGUILD_USER(guildId, "433377645619707906", recipientTotal, recipientBalance, null, null, null);
+                    outputMessage.append("The bananas you've won have been sent to  <@" + "433377645619707906" + ">! ahahahaha 🎉🎉🎉\n");
+                    newBalances[0] = userBalance;
+                }
+            }
+
+            DBTools.updateGUILD_USER(guildId, userId, newBalances[1], newBalances[0], null, null, null);
+            DBTools.closeConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
     private static void transferBananas(String guildId, String source, String dest1, String dest2, int numgana) {
         try {
             DBTools.modBanana(guildId, source, -2*numgana);
@@ -115,9 +159,9 @@ public class Spin {
     }
 
     private static int[] processSpin(MessageReceivedEvent event, User author, int userBalance, int totalBananas, StringBuilder outputMessage) {
-        int dropChance = random.nextInt(3); // 0, 1, or 2
+        int dropChance = random.nextInt(9); // 0 - 5
 
-        if (dropChance != 0) {
+        if ((userBalance < 1000 && dropChance > 2) || (userBalance >= 1000 && dropChance != 0)) {
             handleDropChance(event, author, outputMessage);
         } else {
             int winnings = calculateWinnings(event, author, outputMessage);
@@ -130,6 +174,8 @@ public class Spin {
 
         return new int[]{userBalance, totalBananas};
     }
+
+
 
     private static void handleDropChance(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
         final String[] MEAN_MESSAGES = {
@@ -148,17 +194,18 @@ public class Spin {
 
     }
 
-    private static int calculateWinnings(MessageReceivedEvent event, User author, StringBuilder outputMessage) {
+    private static int calculateWinnings(MessageReceivedEvent event, User author, StringBuilder outputMessage ) {
         int spinResult = random.nextInt(100) + 1;
         int winnings = 0;
 
+        int Usertotal;
         if (spinResult <= 30) {
             winnings = 5;
-        } else if (spinResult <= 60) {
+        } else if (spinResult <= 70) {
             winnings = 10;
-        } else if (spinResult <= 80) {
+        } else if (spinResult <= 85) {
             winnings = 15;
-        } else if (spinResult <= 95) {
+        } else if (spinResult <= 97) {
             winnings = 20;
         } else {
             winnings = handleJackpot(event, author, outputMessage);

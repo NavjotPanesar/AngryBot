@@ -23,13 +23,13 @@ public class UnGunk {
             ResultSet authorSet = DBTools.selectGUILD_USER(event.getGuild().getId(), ID);
 
             System.out.println(event.getGuild().getId()+ "  , "+ ID);
-            if (userCount * 5 > authorSet.getInt("BANANA_CURRENT")) {
+            if (userCount * 20 > authorSet.getInt("BANANA_CURRENT")) {
                 return;
             } else for (User u : users) {
 
                 ID = u.getId();
                 event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById(ID)), u.getGlobalName()).queue();
-                bananaCost += 5;
+                bananaCost += 20;
 
 
             }

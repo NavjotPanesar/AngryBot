@@ -14,7 +14,7 @@ import java.util.*;
 public class Gunk {
 
     public static void run(MessageReceivedEvent event) {
-        if (Tools.modCheck(event) || Tools.isTimeBetween3And5PM_MST_OnThursday()) {
+        if (true /* Tools.modCheck(event) || Tools.isTimeBetween3And5PM_MST_OnThursday()*/) {
             Message msg = event.getMessage();
             User author = msg.getAuthor();              // author object
             String ID = author.getId();                 //unique user ID
@@ -31,7 +31,7 @@ public class Gunk {
                 ResultSet authorSet = DBTools.selectGUILD_USER(event.getGuild().getId(), ID);
                 gunks = authorSet.getInt("GUNKS");
                 System.out.println(event.getGuild().getId() + "  , " + ID);
-                if (userCount * 5 > authorSet.getInt("BANANA_CURRENT")) {
+                if (userCount * 20 > authorSet.getInt("BANANA_CURRENT")) {
                     return;
                 } else for (User u : users) {
                     try {
@@ -40,7 +40,7 @@ public class Gunk {
 
                         event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById(ID)), newname).queue();
                         event.getChannel().sendMessage(u.getEffectiveName() + " just got GUNKED! Their new name is " + newname).queue();
-                        bananaCost += 5;
+                        bananaCost += 20;
                         gunks += 1;
                         gunked = 1 + DBTools.selectGUILD_USER(event.getGuild().getId(), ID).getInt("GUNKED");
                         System.out.println("gunked " + gunked);

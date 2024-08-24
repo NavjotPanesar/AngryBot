@@ -277,8 +277,9 @@ public class Tools {
             // Check if the time is between 3 PM and 5 PM MST
             int hour = nowMST.getHour();
             boolean isBetween3And5PM = hour >= 15 && hour < 17;
+            boolean isBetween3And4PM = hour >= 15 && hour < 16;
 
-            return isThursday && isBetween3And5PM;
+            return (isThursday && isBetween3And5PM) || (!isThursday && isBetween3And4PM);
         }
 
         public static void main (String[]args){

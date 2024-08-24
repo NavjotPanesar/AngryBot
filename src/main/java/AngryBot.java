@@ -2,6 +2,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
@@ -49,7 +50,7 @@ public class AngryBot extends ListenerAdapter {
     private static final int SPAM_TIME_WINDOW_SECONDS = 60; // Adjust this to the time window in seconds
     private final Set<String> spamTimeoutUsers = new HashSet<>();
     private static final int SPAM_TIMEOUT_DURATION = 300; // 300 seconds (5 minutes)
-
+    private static int charlesCounter = 0; //count charles messages
     InputStream in;
     public AngryBot() {
         Tools.initializeParser();
@@ -169,7 +170,7 @@ public class AngryBot extends ListenerAdapter {
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
 
-     //   event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById("1149411432778174474")), "I love Gorbs Bungus").queue();
+     //   event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById("1149411432778174474")), "No").queue();
 
 
 
@@ -184,6 +185,7 @@ public class AngryBot extends ListenerAdapter {
             sendFunnyJoke(event);
             return;
         }
+       // event.getChannel().sendMessage("I have a boner and it won't go away until i get unbanned").queue();
 
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         //~~~~~~~~~ BANANA DROP HANDLING ~~~~~~~~~~~~~~~
@@ -192,7 +194,7 @@ public class AngryBot extends ListenerAdapter {
         int randomNum = ThreadLocalRandom.current().nextInt(0, 100001);
 
         // Customizable drop rates
-        double regularBananaRate = 1.0 / 20;      // 1/20    chance
+        double regularBananaRate = 1.0 / 50;      // 1/50    chance
         double rareBananaRate = 1.0 / 500;        // 1/500   chance
         double epicBananaRate = 1.0 / 2000;       // 1/2000  chance
         double uniqueBananaRate = 1.0 / 5000;     // 1/5000  chance
@@ -257,6 +259,11 @@ public class AngryBot extends ListenerAdapter {
                 }
                 return;
             }
+        } else if(event.getAuthor().getId().equals("992590293327159326")){ //NOT NOW CHARLES FUCK
+            if(charlesCounter % 2 == 0){
+                charlesCounter+=1;
+                event.getMessage().reply("# NOT NOW CHARLES FUCK").queue();
+            }else{charlesCounter -= 1;}
         }
         // Check if the message is a command
         if (content.startsWith(command)) {
