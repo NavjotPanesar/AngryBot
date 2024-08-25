@@ -264,7 +264,7 @@ public class Tools {
             return word;
         }
 
-        public static boolean isTimeBetween3And5PM_MST_OnThursday () {
+        public static boolean allowedTime () {
             // Obtain the current date and time in the system's default timezone (EST)
             ZonedDateTime nowEST = ZonedDateTime.now(ZoneId.of("America/New_York"));
 
@@ -283,7 +283,7 @@ public class Tools {
         }
 
         public static void main (String[]args){
-            boolean check = isTimeBetween3And5PM_MST_OnThursday();
+            boolean check = allowedTime();
             System.out.println("Is it currently between 3-5 PM MST on Thursday? " + check);
         }
     }

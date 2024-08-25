@@ -2,11 +2,11 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import java.util.Objects;
 
-public class name {
+public class Name {
 
     public static void run(MessageReceivedEvent event) {
 
-        if (event.getAuthor().getId().equals("328689134606614528")) {
+        if (Tools.modCheck(event)) {
 
             String mentionedUser = "";
             String newName = "";

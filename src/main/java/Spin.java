@@ -20,7 +20,7 @@ public class Spin {
     private static Timer outputTimer = new Timer();
     private static final ConcurrentHashMap<MessageChannelUnion, ConcurrentLinkedQueue<MessageReceivedEvent>> eventQueues = new ConcurrentHashMap<>(); // map [channel] -> [queue of events since the last output]
     public static void spin(MessageReceivedEvent event) {
-        if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return;
+        if(!Tools.allowedTime())return;
 
         MessageChannelUnion channel = event.getChannel();
         // lazy init queue for perf
@@ -136,15 +136,6 @@ public class Spin {
 
             DBTools.updateGUILD_USER(guildId, userId, newBalances[1], newBalances[0], null, null, null);
             DBTools.closeConnection();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    private static void transferBananas(String guildId, String source, String dest1, String dest2, int numgana) {
-        try {
-            DBTools.modBanana(guildId, source, -2*numgana);
-            DBTools.modBanana(guildId, dest1, numgana);
-            DBTools.modBanana(guildId, dest2, numgana);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

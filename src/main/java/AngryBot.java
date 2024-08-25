@@ -57,12 +57,12 @@ public class AngryBot extends ListenerAdapter {
     public static void main(String[] args) throws LoginException, SQLException {
         commands.put("sherpa", () -> Sherpa.run(mostRecentEvent));
         commands.put("scramble", () -> Scramble.run(mostRecentEvent));
-        commands.put("gunk", () -> Gunk.gunk(mostRecentEvent));
-        commands.put("ungunk", () -> Gunk.unGunk(mostRecentEvent));
+        commands.put("gunk", () -> Gunk.gunk(mostRecentEvent, true));
+        commands.put("ungunk", () -> Gunk.gunk(mostRecentEvent, false));
         commands.put("score", () -> BananaScore.run(mostRecentEvent));
         commands.put("spin", () -> Spin.spin(mostRecentEvent));
         commands.put("jackpot", () -> Spin.jackpot(mostRecentEvent));
-        commands.put("name", () -> name.run(mostRecentEvent));
+        commands.put("name", () -> Name.run(mostRecentEvent));
         commands.put("addimage", () -> Card.addImage(mostRecentEvent));
         commands.put("addcard", () -> Card.addCard(mostRecentEvent));
         commands.put("card", () -> Card.viewCard(mostRecentEvent));
