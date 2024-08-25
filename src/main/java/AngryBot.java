@@ -2,7 +2,6 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
@@ -17,6 +16,7 @@ import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 
+import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -31,27 +31,24 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import javax.security.auth.login.LoginException;
-
-
-
 
 public class AngryBot extends ListenerAdapter {
 
-    static MessageReceivedEvent mostRecentEvent;
-    static EmbedBuilder eb = new EmbedBuilder();
     static final String command = "<";
-    static Map<String, Runnable> commands = new HashMap<>();
-    private static JDA jda;
-    private  User brendan;
-    private  PrivateChannel brendansDM ;
-    private static Map<String, List<Long>> userMessageTimes = new HashMap<>();
+    private static final Map<String, List<Long>> userMessageTimes = new HashMap<>();
     private static final int SPAM_MESSAGE_THRESHOLD = 40; // Adjust this to the number of messages to consider as spam
     private static final int SPAM_TIME_WINDOW_SECONDS = 60; // Adjust this to the time window in seconds
-    private final Set<String> spamTimeoutUsers = new HashSet<>();
     private static final int SPAM_TIMEOUT_DURATION = 300; // 300 seconds (5 minutes)
+    static MessageReceivedEvent mostRecentEvent;
+    static EmbedBuilder eb = new EmbedBuilder();
+    static Map<String, Runnable> commands = new HashMap<>();
+    private static JDA jda;
     private static int charlesCounter = 0; //count charles messages
+    private final Set<String> spamTimeoutUsers = new HashSet<>();
     InputStream in;
+    private User brendan;
+    private PrivateChannel brendansDM;
+
     public AngryBot() {
         Tools.initializeParser();
     }
@@ -60,17 +57,15 @@ public class AngryBot extends ListenerAdapter {
     public static void main(String[] args) throws LoginException, SQLException {
         commands.put("sherpa", () -> Sherpa.run(mostRecentEvent));
         commands.put("scramble", () -> Scramble.run(mostRecentEvent));
-        commands.put("embee", () -> Embee.run(mostRecentEvent));
-        commands.put("crazydazed", () -> CrazyDazed.run(mostRecentEvent));
-        commands.put("gunk", () -> Gunk.run(mostRecentEvent));
-        commands.put("ungunk", () -> UnGunk.run(mostRecentEvent));
+        commands.put("gunk", () -> Gunk.gunk(mostRecentEvent));
+        commands.put("ungunk", () -> Gunk.unGunk(mostRecentEvent));
         commands.put("score", () -> BananaScore.run(mostRecentEvent));
-        commands.put("spin", () -> Spin.run(mostRecentEvent));
-        commands.put("jackpot", () -> Jackpot.run(mostRecentEvent));
+        commands.put("spin", () -> Spin.spin(mostRecentEvent));
+        commands.put("jackpot", () -> Spin.jackpot(mostRecentEvent));
         commands.put("name", () -> name.run(mostRecentEvent));
-        commands.put("addimage", () -> AddImage.run(mostRecentEvent));
-        commands.put("addcard", () -> AddCard.run(mostRecentEvent));
-        commands.put("card", () -> ViewCard.run(mostRecentEvent));
+        commands.put("addimage", () -> Card.addImage(mostRecentEvent));
+        commands.put("addcard", () -> Card.addCard(mostRecentEvent));
+        commands.put("card", () -> Card.viewCard(mostRecentEvent));
         Sherpa.initializeList();
 
 
@@ -153,19 +148,19 @@ public class AngryBot extends ListenerAdapter {
             long remainingSeconds = Duration.between(now, timeoutEnd).getSeconds();
             String formattedDuration = Tools.formatDuration(remainingSeconds);
             brendansDM.sendMessage(event.getUser().getEffectiveName() + " has been timed out for " + formattedDuration).queue();
-        }else {
+        } else {
             System.out.println("Timeout end time is null for user " + event.getUser().getEffectiveName());
         }
-        if (event.getUser().getId().equals("328689134606614528")||event.getUser().getId().equals("976597595831033916")){
-            System.out.println("Timeout User: " + event.getUser().getId()+ "  " + event.getNewTimeOutEnd());
+        if (event.getUser().getId().equals("328689134606614528") || event.getUser().getId().equals("976597595831033916")) {
+            System.out.println("Timeout User: " + event.getUser().getId() + "  " + event.getNewTimeOutEnd());
             event.getMember().removeTimeout().queue();
         }
-        try{
+        try {
             DBTools.openConnection();
-            int timeout = 1 + DBTools.selectGUILD_USER(event.getGuild().getId(),event.getUser().getId()).getInt("TIMEOUT");
-            DBTools.updateGUILD_USER(event.getGuild().getId(),event.getUser().getId(),null,null,null,null,timeout);
+            int timeout = 1 + DBTools.selectGUILD_USER(event.getGuild().getId(), event.getUser().getId()).getInt("TIMEOUT");
+            DBTools.updateGUILD_USER(event.getGuild().getId(), event.getUser().getId(), null, null, null, null, timeout);
             DBTools.closeConnection();
-        }catch (SQLException e){
+        } catch (SQLException e) {
 
         }
     }
@@ -173,22 +168,22 @@ public class AngryBot extends ListenerAdapter {
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
 
-     //   event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById("1149411432778174474")), "No").queue();
-
+        //   event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById("1149411432778174474")), "No").queue();
 
 
         User user = event.getAuthor();
         String userId = user.getId();
         String content = event.getMessage().getContentRaw();
 
-        if (user.isBot() || spamTimeoutUsers.contains(userId)) return; // Ignore messages sent by the bot itself & Check if the user is in spam timeout
+        if (user.isBot() || spamTimeoutUsers.contains(userId))
+            return; // Ignore messages sent by the bot itself & Check if the user is in spam timeout
 
         // Check if the user is spamming
-        if (isSpamming(user,content)) {
+        if (isSpamming(user, content)) {
             sendFunnyJoke(event);
             return;
         }
-       // event.getChannel().sendMessage("I have a boner and it won't go away until i get unbanned").queue();
+        // event.getChannel().sendMessage("I have a boner and it won't go away until i get unbanned").queue();
 
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         //~~~~~~~~~ BANANA DROP HANDLING ~~~~~~~~~~~~~~~
@@ -204,7 +199,7 @@ public class AngryBot extends ListenerAdapter {
         double legendaryBananaRate = 1.0 / 20000; // 1/20000 chance
         if (randomNum < regularBananaRate * 100000) {
             event.getMessage().addReaction(Emoji.fromUnicode("U+1F34C")).queue(); // Regular banana
-            handleBananaEvent(event,1);
+            handleBananaEvent(event, 1);
         } else if (randomNum < (regularBananaRate + rareBananaRate) * 100000) {
             sendBananaImage(event, "rare_banana.png", 5);
         } else if (randomNum < (regularBananaRate + rareBananaRate + epicBananaRate) * 100000) {
@@ -221,10 +216,10 @@ public class AngryBot extends ListenerAdapter {
 
         ListIterator<Role> roles = Objects.requireNonNull(event.getMember()).getRoles().listIterator();
 
-            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            //~~~~~~~~~ COMMAND HANDLING ~~~~~~~~~~~~~~~
-            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if(event.getAuthor().getId().equals("1149411432778174474")){  //reply NO / NO U to lleters
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        //~~~~~~~~~ COMMAND HANDLING ~~~~~~~~~~~~~~~
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if (event.getAuthor().getId().equals("1149411432778174474")) {  //reply NO / NO U to lleters
             if (content.equalsIgnoreCase("No")) {
 
                 try {
@@ -243,7 +238,7 @@ public class AngryBot extends ListenerAdapter {
                 }
                 return;
             }
-        }       else if(event.getAuthor().getId().equals("764537809045815322")){  //reply no u / boot fucker to turd fergeson
+        } else if (event.getAuthor().getId().equals("764537809045815322")) {  //reply no u / boot fucker to turd fergeson
             if (content.equalsIgnoreCase("boot fucker")) {
 
                 try {
@@ -262,11 +257,13 @@ public class AngryBot extends ListenerAdapter {
                 }
                 return;
             }
-        } else if(event.getAuthor().getId().equals("992590293327159326")){ //NOT NOW CHARLES FUCK
-            if(charlesCounter % 2 == 0){
-                charlesCounter+=1;
+        } else if (event.getAuthor().getId().equals("992590293327159326")) { //NOT NOW CHARLES FUCK
+            if (charlesCounter % 2 == 0) {
+                charlesCounter += 1;
                 event.getMessage().reply("# NOT NOW CHARLES FUCK").queue();
-            }else{charlesCounter -= 1;}
+            } else {
+                charlesCounter -= 1;
+            }
         }
         // Check if the message is a command
         if (content.startsWith(command)) {
@@ -284,13 +281,14 @@ public class AngryBot extends ListenerAdapter {
 
         ListIterator<String> triggers = Sherpa.TriggerWords.listIterator();
         while (triggers.hasNext()) {
-            if (content.contains(triggers.next()) && Tools.containsParserTypes(content)){
+            if (content.contains(triggers.next()) && Tools.containsParserTypes(content)) {
                 Sherpa.replySherpa(event);
                 return;
             }
         }
 
     }
+
     private void sendBananaImage(MessageReceivedEvent event, String imageName, int points) {
         try {
             InputStream in = getClass().getClassLoader().getResourceAsStream("bananas/" + imageName);
@@ -307,25 +305,26 @@ public class AngryBot extends ListenerAdapter {
             // Handle the error appropriately
         }
     }
+
     private boolean isSpamming(User user, String content) {
         String userId = user.getId();
-    
+
         // Check if the user has exceeded the spam message threshold within the time window
         if (userMessageTimes.containsKey(userId)) {
             List<Long> messageTimes = userMessageTimes.get(userId);
             long currentTime = System.currentTimeMillis();
-    
+
             // Remove old message times
             messageTimes.removeIf(time -> currentTime - time > SPAM_TIME_WINDOW_SECONDS * 1000);
-    
+
             // If the command is <spin, don't count it towards spamming
             if (content.startsWith("<spin")) {
                 return false;
             }
-    
+
             // Add the current message time
             messageTimes.add(currentTime);
-    
+
             // Check if the user has sent too many messages in the time window
             if (messageTimes.size() > SPAM_MESSAGE_THRESHOLD) {
                 // Put the user in spam timeout
@@ -337,13 +336,15 @@ public class AngryBot extends ListenerAdapter {
             // Initialize the user's message times list
             userMessageTimes.put(userId, new ArrayList<>(Collections.singletonList(System.currentTimeMillis())));
         }
-    
+
         return false;
     }
+
     private void sendFunnyJoke(MessageReceivedEvent event) {
         User user = event.getAuthor();
         event.getChannel().sendMessage(user.getAsMention() + ", whoops! You tripped over a banana peel and can't find any bananas for a while. 🍌").queue();
     }
+
     private void updateUserMessageTime(String userId) {
         // Update the user's message time
         if (userMessageTimes.containsKey(userId)) {
@@ -353,6 +354,7 @@ public class AngryBot extends ListenerAdapter {
             userMessageTimes.put(userId, new ArrayList<>(Collections.singletonList(System.currentTimeMillis())));
         }
     }
+
     private void scheduleRemoveFromTimeout(String userId) {
         // Schedule a task to remove the user from spam timeout after the specified duration
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -362,14 +364,14 @@ public class AngryBot extends ListenerAdapter {
         }, SPAM_TIMEOUT_DURATION, TimeUnit.SECONDS);
         scheduler.shutdown();
     }
+
     private void handleBananaEvent(MessageReceivedEvent event, int bananaValue) {
         String tier;
         String message;
         if (bananaValue == 1) {
             tier = "Normal";
             message = null;
-        }
-        else if (bananaValue == 5) {
+        } else if (bananaValue == 5) {
             tier = "Rare";
             message = event.getAuthor().getName() + " uncovered a rare banana! 🌟 It's worth 5 regular bananas!";
         } else if (bananaValue == 10) {
@@ -385,7 +387,7 @@ public class AngryBot extends ListenerAdapter {
             tier = "Unknown";
             message = event.getAuthor().getName() + " found an UNKNOWN banana! 🍌 That shouldnt be possible! What a stupid idiot!";
         }
-    
+
         // Your logic to print the message goes here
         System.out.println(message);
         if (message != null) {
@@ -397,7 +399,7 @@ public class AngryBot extends ListenerAdapter {
             ResultSet set = DBTools.selectGUILD_USER(event.getGuild().getId(), event.getAuthor().getId());
             int total = bananaValue + set.getInt("BANANA_TOTAL");
             int current = bananaValue + set.getInt("BANANA_CURRENT");
-            DBTools.updateGUILD_USER(event.getGuild().getId(),event.getAuthor().getId(),total,current,null,null,null);
+            DBTools.updateGUILD_USER(event.getGuild().getId(), event.getAuthor().getId(), total, current, null, null, null);
             DBTools.closeConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);

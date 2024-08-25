@@ -1,9 +1,5 @@
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
-import java.util.ListIterator;
 import java.util.Objects;
 
 public class name {

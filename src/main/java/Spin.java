@@ -19,7 +19,18 @@ public class Spin {
     private static AtomicBoolean isOutputTaskScheduled = new AtomicBoolean(false);
     private static Timer outputTimer = new Timer();
     private static final ConcurrentHashMap<MessageChannelUnion, ConcurrentLinkedQueue<MessageReceivedEvent>> eventQueues = new ConcurrentHashMap<>(); // map [channel] -> [queue of events since the last output]
+    public static void spin(MessageReceivedEvent event) {
+        if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return;
 
+        MessageChannelUnion channel = event.getChannel();
+        // lazy init queue for perf
+        eventQueues.computeIfAbsent(channel, k -> new ConcurrentLinkedQueue<>()).add(event);
+        if(isOutputTaskScheduled.compareAndSet(false, true)) {
+            // since the data has been inserted already into the queue, we don't need to include the actual scheduling method inside our concurrency control
+            // worst case we double up on output tasks if compareAndSet executes after the isOutputTaskScheduled=false in the task execution
+            scheduleOutputTask();
+        }
+    }
     public static void scheduleOutputTask() {
         outputTimer.schedule(new TimerTask() {
             @Override
@@ -46,18 +57,7 @@ public class Spin {
         }, outputTaskDelay);
     }
 
-    public static void run(MessageReceivedEvent event) {
-        if(!Tools.isTimeBetween3And5PM_MST_OnThursday())return;
-        
-        MessageChannelUnion channel = event.getChannel();
-        // lazy init queue for perf
-        eventQueues.computeIfAbsent(channel, k -> new ConcurrentLinkedQueue<>()).add(event);
-        if(isOutputTaskScheduled.compareAndSet(false, true)) {
-            // since the data has been inserted already into the queue, we don't need to include the actual scheduling method inside our concurrency control
-            // worst case we double up on output tasks if compareAndSet executes after the isOutputTaskScheduled=false in the task execution
-            scheduleOutputTask();
-        }
-    }
+
 
    /* private static void performSpin(MessageReceivedEvent event, StringBuilder outputMessage) {
         try {
@@ -233,5 +233,17 @@ public class Spin {
         };
 
         outputString.append(author.getAsMention()).append(winningMessage).append("\n");
+    }
+
+    public static void jackpot(MessageReceivedEvent event) {
+        try {
+            DBTools.openConnection();
+            int currentJackpot = DBTools.selectJACKPOT(event.getGuild().getId());
+
+            event.getChannel().sendMessage(":tada: Exciting News! The current Banana Jackpot is: " + currentJackpot + " bananas! :tada:").queue();
+            DBTools.closeConnection();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

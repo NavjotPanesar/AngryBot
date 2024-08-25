@@ -17,8 +17,8 @@ public class Scramble {
 
                 Message msg = event.getMessage();
                 User author = msg.getAuthor();              // author object
-                String ID = author.getId();                 //unique user ID
-                String nickname = Objects.requireNonNull(event.getMember()).getEffectiveName();
+                String ID;                                  //unique user ID
+                String nickname;
 
                 List<User> users = msg.getMentions().getUsers();  //list of tagged users
 

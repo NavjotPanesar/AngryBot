@@ -5,7 +5,7 @@ plugins {
     }
 application.mainClass.set("AngryBot")
 group = "org.example"
-version = "2.0.0"
+version = "3.0.0"
 
 val jdaVersion = "5.0.0-beta.16" //
 
