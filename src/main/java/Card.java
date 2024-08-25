@@ -8,14 +8,28 @@ import retrofit2.Retrofit;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Random;
 
 public class Card {
+    private static final String[] cardStyleList = {"normal", "ritual", "effect", "fusion", "link", "shiny","spell","synchro","trap","xyz"};
+    private static final String[] attributeList = {"Light", "Dark", "Earth", "Fire", "Wind", "Spell","Trap","Divine"};
+    private static final String[] typeList = {"Gooner", "Warlock", "Wizard", "Mage", "Paladin", "Demon","Gunk Lord","Retard"};
+
     public static void addCard(MessageReceivedEvent event) {
         try {
             DBTools.openConnection();
+            Random RANDOM = new Random();
+            String atk = String.valueOf((int)(Math.pow(RANDOM.nextDouble(), 2) * 15000));
+            String def = String.valueOf((int)(Math.pow(RANDOM.nextDouble(), 2) * 15000));
+            String level = String.valueOf(RANDOM.nextInt(11)+1);
+            String cardStyle = cardStyleList[RANDOM.nextInt(cardStyleList.length-1)];
+            String attribute = attributeList[RANDOM.nextInt(attributeList.length-1)];
+            String type = typeList[RANDOM.nextInt(typeList.length-1)];
 
             var params = event.getMessage().getContentDisplay().substring(1).split("<");
-            int rowCount = DBTools.insertCard(params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8], 0, params[9], true);
+            System.out.println("cardStyle="+cardStyle+"  Title="+params[1]+"   attribute="+ attribute + "  level=" +level + "   type="+type+ "   desc=" +params[2]+"  atk=-"+ atk+"  def="+ def);
+            int rowCount = DBTools.insertCard(cardStyle, params[1], attribute, level, type, params[2], atk, def, 0, params[3], true);
             event.getMessage().reply(rowCount > 0 ? "nice. latest card id is " + DBTools.getLatestCardId() : "nope").queue();
 
             DBTools.closeConnection();

@@ -46,8 +46,6 @@ public class AngryBot extends ListenerAdapter {
     private static int charlesCounter = 0; //count charles messages
     private final Set<String> spamTimeoutUsers = new HashSet<>();
     InputStream in;
-    private User brendan;
-    private PrivateChannel brendansDM;
 
     public AngryBot() {
         Tools.initializeParser();
@@ -140,8 +138,8 @@ public class AngryBot extends ListenerAdapter {
 
     @Override
     public void onGuildMemberUpdateTimeOut(GuildMemberUpdateTimeOutEvent event) {
-        brendan = jda.getUserById("708499135770394634");
-        brendansDM = brendan.openPrivateChannel().complete();
+        User brendan = jda.getUserById("708499135770394634");
+        PrivateChannel brendansDM = brendan.openPrivateChannel().complete();
         OffsetDateTime timeoutEnd = event.getNewTimeOutEnd();
         if (timeoutEnd != null) {
             OffsetDateTime now = OffsetDateTime.now();
@@ -257,14 +255,14 @@ public class AngryBot extends ListenerAdapter {
                 }
                 return;
             }
-        } else if (event.getAuthor().getId().equals("992590293327159326")) { //NOT NOW CHARLES FUCK
+        } /*else if (event.getAuthor().getId().equals("992590293327159326")) { //NOT NOW CHARLES FUCK
             if (charlesCounter % 2 == 0) {
                 charlesCounter += 1;
                 event.getMessage().reply("# NOT NOW CHARLES FUCK").queue();
             } else {
                 charlesCounter -= 1;
             }
-        }
+        }*/
         // Check if the message is a command
         if (content.startsWith(command)) {
             String[] commandParts = content.substring(command.length()).split(" ");
