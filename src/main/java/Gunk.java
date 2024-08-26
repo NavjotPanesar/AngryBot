@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.exceptions.HierarchyException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,13 +22,14 @@ public class Gunk {
         int gunked;
         int gunks;
         String newname;
-        List<User> users = msg.getMentions().getUsers();  //list of tagged users
+        List<User> users = new ArrayList<User>();
         if (event.getMessage().getMentions().mentionsEveryone()) {
             List<Member> members = event.getGuild().getMembers();
             for (Member m : members) {
                 users.add(m.getUser());
             }
-        }
+        }else users = msg.getMentions().getUsers();  //list of tagged users
+
         int userCount = users.toArray().length;
         try {
             DBTools.openConnection();
