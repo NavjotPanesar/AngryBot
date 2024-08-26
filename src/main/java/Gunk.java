@@ -1,3 +1,4 @@
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -10,6 +11,7 @@ import java.util.Objects;
 
 public class Gunk {
     private static int cost = 20;
+    private static int userCount;
 
     public static void gunk(MessageReceivedEvent event, boolean gunk) {
         Message msg = event.getMessage();
@@ -20,6 +22,12 @@ public class Gunk {
         int gunks;
         String newname;
         List<User> users = msg.getMentions().getUsers();  //list of tagged users
+        if (event.getMessage().getMentions().mentionsEveryone()) {
+            List<Member> members = event.getGuild().getMembers();
+            for (Member m : members) {
+                users.add(m.getUser());
+            }
+        }
         int userCount = users.toArray().length;
         try {
             DBTools.openConnection();
