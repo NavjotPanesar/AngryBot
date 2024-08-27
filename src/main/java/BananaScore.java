@@ -20,6 +20,8 @@ public class BananaScore {
             int gunked = result.getInt("GUNKED");
             int gunks = result.getInt("GUNKS");
             int timeout = result.getInt("TIMEOUT");
+            int hooker = result.getInt("HOOKER");
+            String std = result.getString("STD");
             User author = event.getAuthor();            // author object
             String nickname = Objects.requireNonNull(event.getMember()).getEffectiveName();
             AngryBot.eb.clear();
@@ -32,6 +34,8 @@ public class BananaScore {
             AngryBot.eb.addField("Gunked", Integer.toString(gunked), false);
             AngryBot.eb.addField("Gunks", Integer.toString(gunks), false);
             AngryBot.eb.addField("Timeouts", Integer.toString(timeout), false);
+            AngryBot.eb.addField("Hookers", Integer.toString(hooker), false);
+            AngryBot.eb.addField("STD's caught", std, false);
 
             event.getMessage().replyEmbeds(AngryBot.eb.build()).queue();
 

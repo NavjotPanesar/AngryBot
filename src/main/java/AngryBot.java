@@ -64,6 +64,7 @@ public class AngryBot extends ListenerAdapter {
         commands.put("addimage", () -> Card.addImage(mostRecentEvent));
         commands.put("addcard", () -> Card.addCard(mostRecentEvent));
         commands.put("card", () -> Card.viewCard(mostRecentEvent));
+        commands.put("hooker", () -> Hooker.run(mostRecentEvent));
         Sherpa.initializeList();
 
 
@@ -156,7 +157,7 @@ public class AngryBot extends ListenerAdapter {
         try {
             DBTools.openConnection();
             int timeout = 1 + DBTools.selectGUILD_USER(event.getGuild().getId(), event.getUser().getId()).getInt("TIMEOUT");
-            DBTools.updateGUILD_USER(event.getGuild().getId(), event.getUser().getId(), null, null, null, null, timeout);
+            DBTools.updateGUILD_USER(event.getGuild().getId(), event.getUser().getId(), null, null, null, null, timeout,null,null);
             DBTools.closeConnection();
         } catch (SQLException e) {
 
@@ -397,7 +398,7 @@ public class AngryBot extends ListenerAdapter {
             ResultSet set = DBTools.selectGUILD_USER(event.getGuild().getId(), event.getAuthor().getId());
             int total = bananaValue + set.getInt("BANANA_TOTAL");
             int current = bananaValue + set.getInt("BANANA_CURRENT");
-            DBTools.updateGUILD_USER(event.getGuild().getId(), event.getAuthor().getId(), total, current, null, null, null);
+            DBTools.updateGUILD_USER(event.getGuild().getId(), event.getAuthor().getId(), total, current, null, null, null,null,null);
             DBTools.closeConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);

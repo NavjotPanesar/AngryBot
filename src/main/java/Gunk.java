@@ -11,14 +11,14 @@ import java.util.List;
 import java.util.Objects;
 
 public class Gunk {
-    private static int cost = 20;
+    private static int cost = 0;
     private static int userCount;
 
     public static void gunk(MessageReceivedEvent event, boolean gunk) {
         Message msg = event.getMessage();
         User author = msg.getAuthor();              // author object
         String ID = author.getId();                 //unique user ID
-        int bananaCost = 0;
+        int bananaCost = 10;
         int gunked;
         int gunks;
         String newname;
@@ -41,19 +41,21 @@ public class Gunk {
                 return;
             } else for (User u : users) {
                 try {
+                    ID = u.getId();
                     bananaCost += cost;
                     if (gunk) {
-                        ID = u.getId();
                         newname = Tools.generateSillyWord();
                         event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById(ID)), newname).queue();
                         event.getChannel().sendMessage(u.getEffectiveName() + " just got GUNKED! Their new name is " + newname).queue();
 
                         gunks += 1;
                         gunked = 1 + DBTools.selectGUILD_USER(event.getGuild().getId(), ID).getInt("GUNKED");
-                        DBTools.updateGUILD_USER(event.getGuild().getId(), ID, null, null, gunked, null, null);
+                        DBTools.updateGUILD_USER(event.getGuild().getId(), ID, null, null, gunked, null, null,null,null);
 
                     } else {
                         event.getGuild().modifyNickname(Objects.requireNonNull(event.getGuild().getMemberById(ID)), u.getGlobalName()).queue();
+                        event.getChannel().sendMessage(u.getEffectiveName() + " just got ungunked").queue();
+
                     }
                 } catch (HierarchyException e) {
 
@@ -63,7 +65,7 @@ public class Gunk {
 
 
             bananaCost = DBTools.selectGUILD_USER(event.getGuild().getId(), author.getId()).getInt("BANANA_CURRENT") - bananaCost;
-            DBTools.updateGUILD_USER(event.getGuild().getId(), author.getId(), null, bananaCost, null, gunks, null);
+            DBTools.updateGUILD_USER(event.getGuild().getId(), author.getId(), null, bananaCost, null, gunks, null,null,null);
 
             DBTools.closeConnection();
         } catch (SQLException e) {

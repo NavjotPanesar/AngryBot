@@ -23,13 +23,16 @@ public class DBTools {
 
     protected static void insertGUILD_USER(String GUILD, String UID) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO GUILD_USER(GUILD, UID,BANANA_TOTAL,BANANA_CURRENT,GUNKED,GUNKS) VALUES (?,?,?,?,?,?)")) {
+                "INSERT INTO GUILD_USER(GUILD, UID,BANANA_TOTAL,BANANA_CURRENT,GUNKED,GUNKS,TIMEOUT,HOOKER,STD) VALUES (?,?,?,?,?,?,?,?,?)")) {
             statement.setString(1, GUILD);
             statement.setString(2, UID);
             statement.setInt(3, 10);
             statement.setInt(4, 10);
             statement.setInt(5, 0);
             statement.setInt(6, 0);
+            statement.setInt(7, 0);
+            statement.setInt(8, 0);
+            statement.setString(9, "");
             statement.executeUpdate();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -70,8 +73,8 @@ public class DBTools {
     }
 
 
-    protected static void updateGUILD_USER(String guild, String uid, Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks,Integer timeout) {
-        try (PreparedStatement statement = connection.prepareStatement(buildUpdateQuery(bananaTotal, bananaCurrent, gunked, gunks, timeout))) {
+    protected static void updateGUILD_USER(String guild, String uid, Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks,Integer timeout,Integer hooker,String std) {
+        try (PreparedStatement statement = connection.prepareStatement(buildUpdateQuery(bananaTotal, bananaCurrent, gunked, gunks, timeout, hooker, std))) {
             int parameterIndex = 1;
 
             // Set values based on non-null parameters
@@ -89,6 +92,12 @@ public class DBTools {
             }
             if (timeout != null) {
                 statement.setInt(parameterIndex++, timeout);
+            }
+            if (hooker != null) {
+                statement.setInt(parameterIndex++, hooker);
+            }
+            if (std != null) {
+                statement.setString(parameterIndex++, std);
             }
 
             // Set key parameters
@@ -126,7 +135,7 @@ public class DBTools {
     }
 
     // Helper method to dynamically build the update query
-    private static String buildUpdateQuery(Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks,Integer timeout) {
+    private static String buildUpdateQuery(Integer bananaTotal, Integer bananaCurrent, Integer gunked, Integer gunks,Integer timeout,Integer hooker,String std) {
         StringBuilder queryBuilder = new StringBuilder("UPDATE GUILD_USER SET ");
 
         // Append non-null parameters to the query
@@ -135,6 +144,8 @@ public class DBTools {
         appendToQuery(queryBuilder, "GUNKED", gunked);
         appendToQuery(queryBuilder, "GUNKS", gunks);
         appendToQuery(queryBuilder, "TIMEOUT", timeout);
+        appendToQuery(queryBuilder, "HOOKER", hooker);
+        appendToQuery(queryBuilder, "STD", std);
 
         // Remove the trailing comma, if any
         if (queryBuilder.lastIndexOf(",") == queryBuilder.length() - 2) {

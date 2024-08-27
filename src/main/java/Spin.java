@@ -128,13 +128,13 @@ public class Spin {
                     int winnings = newBalances[0] - userBalance;
                     recipientBalance += winnings;
                     recipientTotal += winnings;
-                    DBTools.updateGUILD_USER(guildId, "433377645619707906", recipientTotal, recipientBalance, null, null, null);
+                    DBTools.updateGUILD_USER(guildId, "433377645619707906", recipientTotal, recipientBalance, null, null, null,null,null);
                     outputMessage.append("The bananas you've won have been sent to  <@" + "433377645619707906" + ">! ahahahaha 🎉🎉🎉\n");
                     newBalances[0] = userBalance;
                 }
             }
 
-            DBTools.updateGUILD_USER(guildId, userId, newBalances[1], newBalances[0], null, null, null);
+            DBTools.updateGUILD_USER(guildId, userId, newBalances[1], newBalances[0], null, null, null,null,null);
             DBTools.closeConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);
