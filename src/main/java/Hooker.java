@@ -39,7 +39,7 @@ public class Hooker {
             event.getChannel().sendMessage(event.getMember().getEffectiveName() + " has rented " + currentName + " a hooker for " + cost + " bananas!").queue();
 
         try {
-            ResultSet authorSet = DBTools.selectGUILD_USER(event.getGuild().getId(), event.getAuthor().getId());
+            ResultSet authorSet = DBTools.selectGUILD_USER(event.getGuild().getId(), m.getUser().getId());
             assert authorSet != null;
             int hookerCount = 1 + authorSet.getInt("HOOKER");
             String std = authorSet.getString("STD");
@@ -49,7 +49,7 @@ public class Hooker {
                 event.getGuild().modifyNickname(m, buildName(m, disease)).queue();
                 event.getChannel().sendMessage("Uh oh! " + currentName + " caught " + disease + ".").queue();
             }
-            DBTools.updateGUILD_USER(event.getGuild().getId(), event.getAuthor().getId(), null, bananaCost, null, null, null, hookerCount, std);
+            DBTools.updateGUILD_USER(event.getGuild().getId(), m.getUser().getId(), null, bananaCost, null, null, null, hookerCount, std);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
