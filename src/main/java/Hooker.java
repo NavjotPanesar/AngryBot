@@ -1,5 +1,6 @@
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.PermissionException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -43,12 +44,20 @@ public class Hooker {
             assert authorSet != null;
             int hookerCount = 1 + authorSet.getInt("HOOKER");
             String std = authorSet.getString("STD");
+
+
             if (random.nextInt(100) < 30) {
                 String disease = diseases[random.nextInt(diseases.length - 1)];
                 std = stdList(disease, authorSet.getString("STD"));
-                event.getGuild().modifyNickname(m, buildName(m, disease)).queue();
+                try {
+                    event.getGuild().modifyNickname(m, buildName(m, disease)).queue();
+                }catch (PermissionException e){
+                    throw new RuntimeException(e);
+                }
                 event.getChannel().sendMessage("Uh oh! " + currentName + " caught " + disease + ".").queue();
             }
+
+
             DBTools.updateGUILD_USER(event.getGuild().getId(), m.getUser().getId(), null, bananaCost, null, null, null, hookerCount, std);
         } catch (SQLException e) {
             throw new RuntimeException(e);
