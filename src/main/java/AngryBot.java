@@ -191,7 +191,7 @@ public class AngryBot extends ListenerAdapter {
         int randomNum = ThreadLocalRandom.current().nextInt(0, 100001);
 
         // Customizable drop rates
-        double regularBananaRate = 1.0 / 50;      // 1/50    chance
+        double regularBananaRate = 1.0 / 20;      // 1/50    chance
         double rareBananaRate = 1.0 / 500;        // 1/500   chance
         double epicBananaRate = 1.0 / 2000;       // 1/2000  chance
         double uniqueBananaRate = 1.0 / 5000;     // 1/5000  chance

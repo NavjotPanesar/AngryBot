@@ -57,8 +57,8 @@ public class Hooker {
 
     public static String buildName(Member m, String disease) {
         String nickname;
-        if (m.getNickname().equals("null")) nickname = m.getNickname();
-        else nickname = m.getUser().getName();
+        if (m.getNickname().equals("null")) nickname = m.getUser().getName();
+        else nickname = m.getNickname();
         String newName = "*" + disease + "* " + nickname;
         if (newName.length() > 32) newName = newName.substring(0, 32);
 
