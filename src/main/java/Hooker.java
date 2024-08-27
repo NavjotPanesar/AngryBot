@@ -47,7 +47,7 @@ public class Hooker {
 
 
             if (random.nextInt(100) < 30) {
-                String disease = diseases[random.nextInt(diseases.length - 1)];
+                String disease = diseases[random.nextInt(diseases.length)];
                 std = stdList(disease, authorSet.getString("STD"));
                 try {
                     event.getGuild().modifyNickname(m, buildName(m, disease)).queue();
