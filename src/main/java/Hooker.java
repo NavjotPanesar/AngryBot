@@ -23,7 +23,7 @@ public class Hooker {
             if (!mentionedUsers.isEmpty()) bananaCost = cost * mentionedUsers.size();
             assert authorSet != null;
             if (bananaCost > authorSet.getInt("BANANA_CURRENT")) return;
-            bananaCost = DBTools.selectGUILD_USER(event.getGuild().getId(), event.getAuthor().getId()).getInt("BANANA_CURRENT") - bananaCost;
+            bananaCost = authorSet.getInt("BANANA_CURRENT") - bananaCost;
             DBTools.updateGUILD_USER(event.getGuild().getId(), event.getAuthor().getId(), null, bananaCost, null, null, null, null, null);
             if (mentionedUsers.isEmpty()) hooker(event, Objects.requireNonNull(event.getMember()));
             else for (Member m : mentionedUsers) hooker(event, m);
@@ -34,6 +34,7 @@ public class Hooker {
 
     public static void hooker(MessageReceivedEvent event, Member m) {
         String currentName = m.getEffectiveName();
+
         if (m.getId().equals(Objects.requireNonNull(event.getMember()).getId()))
             event.getChannel().sendMessage(currentName + " has rented themselves a hooker for " + cost + " bananas!").queue();
         else
@@ -56,9 +57,7 @@ public class Hooker {
                 }
                 event.getChannel().sendMessage("Uh oh! " + currentName + " caught " + disease + ".").queue();
             }
-
-
-            DBTools.updateGUILD_USER(event.getGuild().getId(), m.getUser().getId(), null, bananaCost, null, null, null, hookerCount, std);
+            DBTools.updateGUILD_USER(event.getGuild().getId(), m.getUser().getId(), null, null, null, null, null, hookerCount, std);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
