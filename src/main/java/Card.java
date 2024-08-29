@@ -89,8 +89,12 @@ public class Card {
                     "myPic",
                     RequestBody.create(stream.readAllBytes(), MediaType.parse("image/*"))
             );
-            var res = service.uploadImage(RequestBody.create(image_name, MediaType.parse("text/plain")), part).execute();
-
+            int retryCount = 0;
+            retrofit2.Response<String> res = null;
+            do {
+                res = service.uploadImage(RequestBody.create(image_name, MediaType.parse("text/plain")), part).execute();
+                retryCount++;
+            } while (res.body() == null && retryCount <=3);
             event.getMessage().reply(res.body() == null ? "nope": res.body()).queue();
 
             DBTools.closeConnection();
